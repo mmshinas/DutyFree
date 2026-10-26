@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Serendib">
+<script>try{var __t=localStorage.getItem("app_theme");if(__t&&/^(tabs|shop|deck)$/.test(__t))document.documentElement.setAttribute("data-theme",__t);}catch(e){}</script>
 <style>
   :root{
     --paper:#F5F0E4;
@@ -25,13 +26,15 @@
     --gold:#A8763A;
     --gold-light:#E0B978;
     --stub-notch: 14px;
+    --font-body: Georgia, 'Times New Roman', serif;
+    --nav-h: 0px;
   }
 
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);}
   body{
     background-image: radial-gradient(ellipse at top, rgba(176,138,78,0.10) 0%, rgba(245,240,228,0) 55%);
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: var(--font-body);
     -webkit-font-smoothing:antialiased;
     min-height:100vh;
     padding-bottom:40px;
@@ -105,7 +108,7 @@
     width:100%; padding:13px 46px 13px 38px;
     border:1px solid var(--hairline); border-radius:999px;
     background:var(--paper-raised);
-    font-family:Georgia, serif; font-size:0.92rem; color:var(--ink);
+    font-family:var(--font-body); font-size:0.92rem; color:var(--ink);
     outline:none;
   }
   .search-wrap input:focus{ border-color:var(--gold); }
@@ -131,7 +134,7 @@
   .qa-btn{
     flex:1; display:flex; align-items:center; justify-content:center; gap:5px;
     padding:12px 6px; min-height:44px; border:3px solid var(--hairline); border-radius:12px;
-    background:var(--paper-raised); font-family:Georgia, serif; font-size:0.76rem;
+    background:var(--paper-raised); font-family:var(--font-body); font-size:0.76rem;
     color:var(--ink); cursor:pointer; position:relative;
   }
   #stockBtn{ border-color:#F05F20; }
@@ -174,7 +177,7 @@
   }
   .flight-input{
     width:100%; padding:10px 11px; border:1px solid var(--hairline); border-radius:10px;
-    background:var(--paper-raised); font-family:Georgia, serif; font-size:0.85rem;
+    background:var(--paper-raised); font-family:var(--font-body); font-size:0.85rem;
     color:var(--ink); outline:none;
   }
   .flight-input:focus{ border-color:var(--gold); }
@@ -198,20 +201,20 @@
   .floating-bar-inner{ width:100%; max-width:640px; pointer-events:auto; display:flex; gap:10px; }
   .floating-save-btn{
     flex:1; padding:14px; border:none; border-radius:14px;
-    background:var(--ink); color:var(--paper-raised); font-family:Georgia, serif;
+    background:var(--ink); color:var(--paper-raised); font-family:var(--font-body);
     font-size:0.98rem; font-weight:700; cursor:pointer;
     box-shadow:0 6px 18px rgba(20,16,10,0.22);
   }
   .floating-reset-btn{
     flex:1; padding:14px; border:1px solid var(--hairline); border-radius:14px;
-    background:var(--paper-raised); color:var(--pink-ink); font-family:Georgia, serif;
+    background:var(--paper-raised); color:var(--pink-ink); font-family:var(--font-body);
     font-size:0.98rem; font-weight:700; cursor:pointer;
     box-shadow:0 6px 18px rgba(20,16,10,0.1);
   }
   .floating-home-bar-inner{ width:100%; max-width:640px; pointer-events:auto; display:flex; justify-content:center; }
   .floating-home-btn{
     width:auto; padding:11px 26px; border:none; border-radius:999px;
-    background:#E07A2C; color:#FBF8F0; font-family:Georgia, serif;
+    background:#E07A2C; color:#FBF8F0; font-family:var(--font-body);
     font-size:0.86rem; font-weight:700; cursor:pointer;
     box-shadow:0 6px 18px rgba(20,16,10,0.22);
     display:inline-flex; align-items:center; justify-content:center; gap:7px;
@@ -244,7 +247,7 @@
   .payment-method-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0 4px; }
   .payment-method-btn{
     padding:15px 8px; border:1.5px solid var(--hairline); border-radius:12px;
-    background:var(--paper-raised); font-family:Georgia, serif; font-size:0.85rem;
+    background:var(--paper-raised); font-family:var(--font-body); font-size:0.85rem;
     font-weight:700; color:var(--ink); cursor:pointer; text-align:center;
   }
   .payment-method-btn.selected{ border-color:var(--gold); background:rgba(176,138,78,0.1); }
@@ -253,7 +256,7 @@
   }
   .payment-select{
     flex:1; min-width:90px; padding:11px 8px; border:1px solid var(--hairline);
-    border-radius:10px; background:var(--paper-raised); font-family:Georgia, serif;
+    border-radius:10px; background:var(--paper-raised); font-family:var(--font-body);
     font-size:0.85rem; color:var(--ink);
   }
   .payment-amount-input{
@@ -263,7 +266,7 @@
   }
   .payment-add-btn{
     padding:11px 18px; border:none; border-radius:10px; background:var(--ink);
-    color:var(--paper-raised); font-family:Georgia, serif; font-size:0.85rem;
+    color:var(--paper-raised); font-family:var(--font-body); font-size:0.85rem;
     font-weight:700; cursor:pointer;
   }
   .payment-lines-list{ margin-top:8px; }
@@ -294,7 +297,7 @@
   }
   .add-cart-btn{
     width:100%; padding:13px; border:none; border-radius:12px;
-    background:var(--ink); color:var(--paper-raised); font-family:Georgia, serif;
+    background:var(--ink); color:var(--paper-raised); font-family:var(--font-body);
     font-size:0.95rem; font-weight:700; cursor:pointer;
   }
   .add-cart-btn:disabled{ background:var(--hairline); color:var(--ink-soft); cursor:not-allowed; }
@@ -305,7 +308,7 @@
   .crew-staff-fields{ display:flex; gap:8px; margin-top:8px; }
   .crew-staff-input{
     min-width:0; padding:9px 10px; border:1px solid var(--hairline);
-    border-radius:8px; background:var(--paper-raised); font-family:Georgia, serif;
+    border-radius:8px; background:var(--paper-raised); font-family:var(--font-body);
     font-size:0.78rem; color:var(--ink);
   }
   .staff-no-input{ flex:1; }
@@ -314,7 +317,7 @@
   .cart-qty{ font-family: ui-monospace, monospace; font-size:0.85rem; min-width:14px; text-align:center; }
   .cart-remove{
     margin-left:6px; background:none; border:none; color:var(--pink-ink);
-    font-family:Georgia, serif; font-size:0.8rem; text-decoration:underline; cursor:pointer;
+    font-family:var(--font-body); font-size:0.8rem; text-decoration:underline; cursor:pointer;
     padding:10px 6px; min-height:44px;
   }
   .cart-footer{ margin-top:18px; padding-top:16px; border-top:1px solid var(--hairline); padding-bottom:10px; }
@@ -322,7 +325,7 @@
   .clear-cart-btn{
     width:100%; margin-top:10px; padding:11px; background:none;
     border:1px solid var(--hairline); border-radius:12px; color:var(--ink-soft);
-    font-family:Georgia, serif; font-size:0.85rem; cursor:pointer;
+    font-family:var(--font-body); font-size:0.85rem; cursor:pointer;
   }
 
   /* ---------- Session summary ---------- */
@@ -340,7 +343,7 @@
   .refund-toggle-btn{
     display:inline-block; margin-top:8px; padding:6px 12px; border:1px solid var(--pink-ink);
     border-radius:999px; background:none; color:var(--pink-ink);
-    font-family:Georgia, serif; font-size:0.7rem; font-weight:700; cursor:pointer;
+    font-family:var(--font-body); font-size:0.7rem; font-weight:700; cursor:pointer;
   }
   .refund-form{
     display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:10px; flex-wrap:wrap;
@@ -351,11 +354,11 @@
   }
   .refund-confirm-btn{
     padding:8px 14px; border:none; border-radius:8px; background:var(--pink-ink);
-    color:#FBF8F0; font-family:Georgia, serif; font-size:0.74rem; font-weight:700; cursor:pointer;
+    color:#FBF8F0; font-family:var(--font-body); font-size:0.74rem; font-weight:700; cursor:pointer;
   }
   .refund-cancel-btn{
     padding:8px 14px; border:1px solid var(--hairline); border-radius:8px; background:none;
-    color:var(--ink-soft); font-family:Georgia, serif; font-size:0.74rem; cursor:pointer;
+    color:var(--ink-soft); font-family:var(--font-body); font-size:0.74rem; cursor:pointer;
   }
 
   /* ---------- Custom confirm modal (native confirm() is unreliable in sandboxed previews) ---------- */
@@ -374,12 +377,12 @@
   }
   .confirm-overlay.open .confirm-box{ transform:scale(1); }
   .confirm-msg{
-    font-family:Georgia, serif; font-size:0.98rem; line-height:1.45;
+    font-family:var(--font-body); font-size:0.98rem; line-height:1.45;
     color:var(--ink); margin-bottom:18px; text-align:center;
   }
   .confirm-actions{ display:flex; gap:10px; }
   .confirm-btn{
-    flex:1; padding:13px; min-height:44px; border-radius:12px; font-family:Georgia, serif;
+    flex:1; padding:13px; min-height:44px; border-radius:12px; font-family:var(--font-body);
     font-size:0.92rem; cursor:pointer;
   }
   .confirm-btn.cancel{ background:none; border:1px solid var(--hairline); color:var(--ink-soft); }
@@ -452,7 +455,7 @@
     cursor:pointer; text-align:center;
   }
   .stock-cat-name{
-    font-family:Georgia, serif; font-size:0.88rem; font-weight:700;
+    font-family:var(--font-body); font-size:0.88rem; font-weight:700;
     color:var(--ink); line-height:1.25;
     display:flex; align-items:center; justify-content:center; gap:6px;
   }
@@ -528,7 +531,7 @@
   .preorder-staff-check{
     display:flex; align-items:flex-start; gap:10px; margin-top:14px;
     padding:12px; border:1px solid var(--hairline); border-radius:10px;
-    background:var(--paper-raised); font-family:Georgia, serif; font-size:0.85rem;
+    background:var(--paper-raised); font-family:var(--font-body); font-size:0.85rem;
     color:var(--ink); cursor:pointer;
   }
   .preorder-staff-check input{ margin-top:2px; width:18px; height:18px; flex-shrink:0; }
@@ -640,7 +643,7 @@
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px);
     background:var(--ink); color:var(--paper-raised);
     padding:10px 18px; border-radius:999px;
-    font-family:Georgia, serif; font-size:0.82rem;
+    font-family:var(--font-body); font-size:0.82rem;
     z-index:60; opacity:0; transition:all 0.25s ease; pointer-events:none;
     max-width:88%; text-align:center;
   }
@@ -704,7 +707,7 @@
   .report-download-btn{
     width:100%; padding:13px; margin-top:10px; border:1.5px solid var(--ink);
     border-radius:12px; background:none; color:var(--ink);
-    font-family:Georgia, serif; font-size:0.92rem; font-weight:700; cursor:pointer;
+    font-family:var(--font-body); font-size:0.92rem; font-weight:700; cursor:pointer;
     display:flex; align-items:center; justify-content:center; gap:8px;
   }
   .report-download-btn svg{ width:16px; height:16px; }
@@ -734,14 +737,14 @@
   .archive-btn{
     padding:8px 14px; min-height:36px; border:1px solid var(--hairline);
     border-radius:10px; background:var(--paper); color:var(--ink);
-    font-family:Georgia, serif; font-size:0.74rem; font-weight:700; cursor:pointer;
+    font-family:var(--font-body); font-size:0.74rem; font-weight:700; cursor:pointer;
   }
   .archive-btn.danger{ border-color:var(--pink-ink); color:var(--pink-ink); }
   @media print{
     body > *:not(#reportPrintArea){ display:none !important; }
     #reportPrintArea.print-only{ display:block !important; }
     body{ background:#fff; }
-    .rpt-page{ font-family: Georgia, 'Times New Roman', serif; color:#1a1a1a; padding:0; }
+    .rpt-page{ font-family: var(--font-body); color:#1a1a1a; padding:0; }
     .rpt-title{ font-size:1.4rem; font-weight:700; margin-bottom:2px; }
     .rpt-subtitle{ font-size:0.85rem; color:#555; margin-bottom:18px; }
     .rpt-meta{ width:100%; border-collapse:collapse; margin-bottom:20px; font-size:0.85rem; }
@@ -769,6 +772,207 @@
     @page{ margin:16mm 14mm; }
   }
 
+
+/* ======================================================================
+   THEMES — selected from Home → Tools & Reports → Appearance.
+   Everything below is screen-only; printed flight reports are unaffected.
+   ====================================================================== */
+@media screen{
+  .theme-nav{ display:none; }
+  .theme-pick-btn{
+    display:flex; align-items:center; justify-content:space-between; width:100%;
+    margin-top:12px; padding:12px 14px; min-height:46px; border-radius:12px;
+    border:1.5px solid var(--hairline); background:var(--paper-raised); color:var(--ink);
+    font-family:var(--font-body); font-size:0.82rem; cursor:pointer; text-align:left;
+  }
+  .theme-pick-btn b{ color:var(--gold); font-weight:700; }
+  .theme-overlay{
+    position:fixed; inset:0; z-index:80; background:rgba(20,16,10,0.55);
+    display:none; align-items:flex-end; justify-content:center;
+  }
+  .theme-overlay.open{ display:flex; }
+  .theme-panel{
+    width:100%; max-width:560px; background:var(--paper); color:var(--ink);
+    border-radius:22px 22px 0 0; padding:18px 16px calc(18px + env(safe-area-inset-bottom));
+    max-height:90vh; overflow:auto;
+  }
+  .theme-panel h3{ margin:0 0 2px; font-size:1.15rem; }
+  .theme-panel p{ margin:0 0 6px; font-size:0.78rem; color:var(--ink-soft); }
+  .theme-opt{
+    display:flex; align-items:center; gap:14px; width:100%; text-align:left; margin-top:10px;
+    padding:12px; min-height:68px; border:1.5px solid var(--hairline); border-radius:16px;
+    background:var(--paper-raised); color:var(--ink); font-family:var(--font-body); cursor:pointer;
+  }
+  .theme-opt.on{ border-color:var(--gold); box-shadow:0 0 0 2px var(--gold); }
+  .theme-opt .nm{ font-size:0.95rem; font-weight:700; }
+  .theme-opt .ds{ font-size:0.74rem; color:var(--ink-soft); margin-top:2px; line-height:1.35; }
+  .theme-opt .sw{ display:flex; gap:4px; flex:none; }
+  .theme-opt .sw i{ display:block; width:16px; height:44px; border-radius:6px; border:1px solid rgba(0,0,0,0.12); }
+  .theme-opt .ck{ margin-left:auto; flex:none; font-weight:700; color:var(--gold); }
+  .theme-close{
+    width:100%; margin-top:14px; min-height:46px; border-radius:12px; border:1px solid var(--hairline);
+    background:transparent; color:var(--ink); font-family:var(--font-body); font-size:0.9rem; cursor:pointer;
+  }
+
+  .theme-nav button{
+    flex:1; min-width:0; border:0; background:transparent; color:var(--ink-soft);
+    font-family:var(--font-body); font-size:0.72rem; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:4px; cursor:pointer; position:relative;
+  }
+  .theme-nav button svg{ width:24px; height:24px; }
+  .theme-nav button:disabled{ opacity:0.4; cursor:not-allowed; }
+  .theme-nav button.on{ color:var(--blue-ink); font-weight:700; }
+  .tn-badge{
+    position:absolute; top:8px; left:calc(50% + 6px); min-width:18px; height:18px; border-radius:9px;
+    background:var(--pink-ink); color:#fff; font-size:0.66rem; font-weight:700;
+    display:none; align-items:center; justify-content:center; padding:0 4px;
+  }
+
+  /* ---------- Theme: Tab bar (light) ---------- */
+  html[data-theme="tabs"]{
+    --paper:#F6F1E6; --paper-raised:#FFFDF8; --hairline:#DDD3BC; --ink-soft:#5F5646;
+    --font-body:-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --nav-h:72px;
+  }
+  html[data-theme="tabs"] body{ background-image:none; padding-bottom:calc(var(--nav-h) + 28px + env(safe-area-inset-bottom)); }
+  html[data-theme="tabs"] header.top{ padding:18px 16px 12px; border-bottom:1px solid var(--hairline); }
+  html[data-theme="tabs"] .header-feather,
+  html[data-theme="tabs"] .gold-rule,
+  html[data-theme="tabs"] .quick-actions{ display:none; }
+  html[data-theme="tabs"] .brand{ font-family:Georgia, serif; font-size:1.9rem; }
+  html[data-theme="tabs"] .tagline{ font-style:normal; }
+  html[data-theme="tabs"] .flight-info-bar{ background:var(--paper-raised); border:1px solid var(--hairline); border-radius:14px; padding:10px 12px; }
+  html[data-theme="tabs"] .theme-nav{
+    display:flex; align-items:stretch; position:fixed; left:0; right:0; bottom:0; z-index:25;
+    height:calc(var(--nav-h) + env(safe-area-inset-bottom)); padding-bottom:env(safe-area-inset-bottom);
+    background:var(--paper-raised); border-top:1px solid var(--hairline);
+  }
+  html[data-theme="tabs"] .floating-bar{ bottom:calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+  html[data-theme="tabs"] .cat-card{
+    background:var(--paper-raised); border:1px solid var(--hairline); border-radius:16px;
+    box-shadow:none; padding:14px; gap:10px;
+  }
+  html[data-theme="tabs"] .cat-card .cat-thumb{ aspect-ratio:auto; width:52px; height:52px; background:none; justify-content:flex-start; }
+  html[data-theme="tabs"] .cat-card .cat-thumb img{ width:52px; height:52px; object-fit:contain; }
+  html[data-theme="tabs"] .cat-card .cat-body{ background:none; padding:0; border-top:0; }
+  html[data-theme="tabs"] .cat-card .cat-name{ color:var(--ink); text-shadow:none; font-size:0.98rem; font-weight:600; }
+  html[data-theme="tabs"] .cat-card .cat-meta{ color:var(--ink-soft); margin-top:3px; }
+  html[data-theme="tabs"] .cat-card .arrow{ display:none; }
+  html[data-theme="tabs"] .cat-card.preorders-card{ background:var(--blue-ink); border-color:var(--blue-ink); }
+  html[data-theme="tabs"] .cat-card.preorders-card .cat-name{ color:#fff; }
+  html[data-theme="tabs"] .cat-card.preorders-card .cat-meta{ color:#DCE8EC; }
+
+  /* ---------- Theme: Shop grid (light) ---------- */
+  html[data-theme="shop"]{
+    --paper:#F4F6F9; --paper-raised:#FFFFFF; --ink:#0E2238; --ink-soft:#4A5D73; --hairline:#E1E6ED;
+    --blue:#DCE6F2; --blue-ink:#0E2238; --pink-ink:#9F1239; --gold:#C2410C; --gold-light:#F59E0B;
+    --font-body:-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --nav-h:92px;
+  }
+  html[data-theme="shop"] body{ background-image:none; padding-bottom:calc(var(--nav-h) + 24px); }
+  html[data-theme="shop"] header.top{ padding:16px 16px 10px; border-bottom:0; }
+  html[data-theme="shop"] .header-feather,
+  html[data-theme="shop"] .gold-rule,
+  html[data-theme="shop"] .quick-actions{ display:none; }
+  html[data-theme="shop"] .brand{ font-size:1.45rem; font-weight:800; letter-spacing:-0.01em; }
+  html[data-theme="shop"] .brand span{ background:none; -webkit-text-fill-color:currentColor; color:var(--gold); font-style:normal; font-weight:800; }
+  html[data-theme="shop"] .tagline{ font-style:normal; }
+  html[data-theme="shop"] .flight-info-bar{ background:#E3F3EA; border:0; border-radius:18px; color:#14532D; }
+  html[data-theme="shop"] .flight-info-bar svg{ color:#14532D; }
+  html[data-theme="shop"] .theme-nav{
+    display:flex; align-items:stretch; position:fixed; left:12px; right:12px; bottom:calc(14px + env(safe-area-inset-bottom));
+    z-index:25; height:64px; max-width:560px; margin:0 auto; padding:0 6px; border-radius:24px;
+    background:#0E2238; box-shadow:0 8px 24px rgba(14,34,56,0.3);
+  }
+  html[data-theme="shop"] .theme-nav button{ color:#fff; }
+  html[data-theme="shop"] .theme-nav button.on{ color:#F59E0B; }
+  html[data-theme="shop"] .theme-nav [data-act="home"],
+  html[data-theme="shop"] .theme-nav [data-act="search"]{ display:none; }
+  html[data-theme="shop"] .tn-badge{ background:#F59E0B; color:#1C1200; }
+  html[data-theme="shop"] .floating-bar{ bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) - 10px); }
+  html[data-theme="shop"] .search-wrap input{ border-radius:26px; padding-top:15px; padding-bottom:15px; }
+  .shop-chips{ display:flex; gap:8px; overflow-x:auto; margin:0 -16px 14px; padding:0 16px 4px; scrollbar-width:none; }
+  .shop-chips::-webkit-scrollbar{ display:none; }
+  .shop-chip{
+    flex:none; display:flex; align-items:center; gap:8px; min-height:44px; padding:0 16px;
+    border-radius:22px; border:1px solid var(--hairline); background:var(--paper-raised); color:var(--ink);
+    font-family:var(--font-body); font-size:0.8rem; font-weight:600; cursor:pointer; white-space:nowrap;
+  }
+  .shop-chip img{ width:28px; height:28px; object-fit:contain; margin-left:-8px; }
+  .shop-chip.on{ background:var(--ink); border-color:var(--ink); color:#fff; }
+  .shop-banner{
+    display:flex; align-items:center; gap:14px; width:100%; text-align:left; margin-bottom:14px;
+    background:#0E2238; color:#fff; border:0; border-radius:20px; padding:14px 16px;
+    font-family:var(--font-body); cursor:pointer;
+  }
+  .shop-banner img{ width:64px; height:64px; object-fit:contain; border-radius:12px; flex:none; }
+  .shop-banner .t{ font-weight:800; font-size:1.05rem; }
+  .shop-banner .s{ font-size:0.74rem; color:#C7D3E0; margin-top:3px; }
+  .shop-banner .go{ margin-left:auto; background:#F59E0B; color:#1C1200; font-weight:800; font-size:0.8rem; border-radius:22px; padding:13px 18px; flex:none; }
+  .shop-head{ display:flex; align-items:baseline; justify-content:space-between; margin:18px 0 10px; }
+  .shop-head b{ font-size:1.1rem; font-weight:800; }
+  .shop-head span{ font-size:0.74rem; color:var(--ink-soft); font-weight:600; }
+  .shop-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .shop-card{
+    text-align:left; background:var(--paper-raised); border:1px solid var(--hairline); border-radius:18px;
+    padding:10px; display:flex; flex-direction:column; gap:6px; font-family:var(--font-body); color:var(--ink); cursor:pointer;
+  }
+  .shop-img{ height:130px; display:flex; align-items:center; justify-content:center; position:relative; background:#fff; border-radius:12px; }
+  .shop-img img{ max-width:100%; max-height:100%; object-fit:contain; }
+  .shop-badge{ position:absolute; top:0; left:0; font-size:0.66rem; font-weight:700; padding:3px 8px; border-radius:8px; }
+  .shop-badge.cash{ background:#FEF3C7; color:#78350F; }
+  .shop-badge.sp{ background:#DBEAFE; color:#1E3A8A; }
+  .shop-no{ font-size:0.68rem; color:var(--ink-soft); font-weight:600; }
+  .shop-name{ font-size:0.86rem; font-weight:700; line-height:1.3; min-height:2.6em; }
+  .shop-price{ display:flex; align-items:baseline; justify-content:space-between; }
+  .shop-price b{ font-size:1.1rem; font-weight:800; }
+  .shop-price span{ font-size:0.72rem; color:var(--ink-soft); font-weight:600; }
+  .shop-out{ font-size:0.68rem; color:var(--pink-ink); font-weight:700; }
+
+  /* ---------- Theme: Flight deck (dark) ---------- */
+  html[data-theme="deck"]{
+    color-scheme:dark;
+    --paper:#0D1522; --paper-raised:#152033; --ink:#EAF0F7; --ink-soft:#9DB0C6; --hairline:#263752;
+    --blue:#1B2A42; --blue-ink:#8FB8FF; --pink:#3A1F28; --pink-ink:#F2A0AC; --gold:#F5B544; --gold-light:#FFD98A;
+    --font-body:-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  html[data-theme="deck"] body{ background-image:none; }
+  html[data-theme="deck"] header.top{ padding:20px 16px 14px; border-bottom:1px solid var(--hairline); }
+  html[data-theme="deck"] .header-feather,
+  html[data-theme="deck"] .gold-rule{ display:none; }
+  html[data-theme="deck"] .brand{ font-size:1.9rem; font-weight:700; letter-spacing:-0.02em; }
+  html[data-theme="deck"] .brand span{ background:none; -webkit-text-fill-color:currentColor; color:var(--gold); font-style:normal; font-weight:700; }
+  html[data-theme="deck"] .tagline{ font-style:normal; }
+  html[data-theme="deck"] .flight-info-bar{
+    background:var(--paper-raised); border:1px solid var(--hairline); border-radius:18px;
+    padding:14px 16px; font-size:1.2rem; letter-spacing:0.05em; color:var(--gold);
+  }
+  html[data-theme="deck"] .quick-actions{ gap:10px; margin-top:14px; }
+  html[data-theme="deck"] .qa-btn{
+    flex-direction:column; min-height:76px; gap:8px; border:1px solid var(--hairline); border-radius:16px;
+    background:var(--blue); font-size:0.8rem; font-weight:600;
+  }
+  html[data-theme="deck"] #stockBtn, html[data-theme="deck"] #sessionBtn{ border-color:var(--hairline); }
+  html[data-theme="deck"] .qa-btn svg{ width:24px; height:24px; opacity:1; color:var(--gold); }
+  html[data-theme="deck"] #cartBtn{ background:var(--gold); border-color:var(--gold); color:#1A1200; }
+  html[data-theme="deck"] #cartBtn svg{ color:#1A1200; }
+  html[data-theme="deck"] .qa-badge{ background:#0D1522; color:var(--gold); border:1px solid var(--gold); }
+  html[data-theme="deck"] .cat-grid{ grid-template-columns:1fr; gap:8px; }
+  html[data-theme="deck"] .cat-grid .cat-card:last-child:nth-child(odd){ width:auto; justify-self:stretch; }
+  html[data-theme="deck"] .cat-card{
+    flex-direction:row; align-items:center; gap:14px; min-height:64px; padding:10px 14px;
+    background:var(--paper-raised); border:1px solid var(--hairline); border-radius:16px; box-shadow:none;
+  }
+  html[data-theme="deck"] .cat-card .cat-thumb{ width:44px; height:44px; aspect-ratio:auto; flex:none; border-radius:12px; background:var(--blue); }
+  html[data-theme="deck"] .cat-card .cat-thumb img{ width:32px; height:32px; object-fit:contain; }
+  html[data-theme="deck"] .cat-card .cat-body{ background:none; padding:0; border-top:0; flex:1; flex-direction:row; align-items:center; justify-content:space-between; gap:10px; }
+  html[data-theme="deck"] .cat-card .cat-name{ color:var(--ink); text-shadow:none; font-size:0.95rem; font-weight:600; }
+  html[data-theme="deck"] .cat-card .cat-meta{ margin:0; color:var(--ink-soft); gap:10px; align-items:center; flex-shrink:0; }
+  html[data-theme="deck"] .cat-card.preorders-card{ border:1.5px solid var(--gold); background:#1F1A0C; }
+  html[data-theme="deck"] .cat-card.preorders-card .cat-name{ color:var(--gold); font-weight:700; }
+  html[data-theme="deck"] .floating-bar{ background:linear-gradient(to top, var(--paper) 65%, rgba(13,21,34,0)); }
+  html[data-theme="deck"] .floating-save-btn{ background:var(--gold); color:#1A1200; }
+}
 </style>
 </head>
 <body>
@@ -809,6 +1013,33 @@
 </header>
 
 <main id="mainView"></main>
+
+<nav class="theme-nav" id="themeNav" aria-label="Main navigation">
+  <button type="button" data-act="home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home
+  </button>
+  <button type="button" data-act="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Search
+  </button>
+  <button type="button" data-act="cart">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M2.5 3h2.5l2.4 12.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.6L21 7H6"/></svg>Cart<span class="tn-badge" id="tnBadge">0</span>
+  </button>
+  <button type="button" data-act="session" id="tnSession">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/></svg>Close Flight
+  </button>
+  <button type="button" data-act="stock">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg><span id="tnStockLabel">Open Flight</span>
+  </button>
+</nav>
+
+<div class="theme-overlay" id="themeOverlay">
+  <div class="theme-panel" role="dialog" aria-label="Appearance">
+    <h3>Appearance</h3>
+    <p>Same app, same functions — choose the layout that suits you. Saved on this device.</p>
+    <div id="themeOptions"></div>
+    <button class="theme-close" id="themeCloseBtn" type="button">Close</button>
+  </div>
+</div>
 
 <div class="sheet-backdrop" id="sheetBackdrop">
   <div class="sheet" id="sheet"></div>
@@ -2352,6 +2583,7 @@ function cartTransactionType(){
 }
 function updateCartBadge(){
   const badge = document.getElementById('cartBadge');
+  if(typeof updateThemeNav === 'function') updateThemeNav();
   if(!badge) return;
   const count = cartCount();
   if(count > 0){ badge.textContent = count; badge.style.display = 'flex'; }
@@ -2607,7 +2839,84 @@ function displayPriceLabel(label){
 
 function catClass(idx){ return 'jc' + (idx % 7); }
 
-const state = { view:'home', category:null, query:'', allowanceQuery:'', stockCategory:null, paymentMethod:null, paymentLines:[] };
+const state = { view:'home', homeCat:null, category:null, query:'', allowanceQuery:'', stockCategory:null, paymentMethod:null, paymentLines:[] };
+
+/* ---------- Themes (layout + colour schemes; all functions are identical in each) ---------- */
+const THEMES = {
+  classic: { label:'Classic', desc:'The original paper-and-gold look with category tiles.', sw:['#F5F0E4','#A8763A','#2A241C'] },
+  tabs:    { label:'Tab bar', desc:'Light and clean, with a bottom tab bar for Home, Search, Cart, Close Flight and Flight.', sw:['#F6F1E6','#2E5A6C','#FFFDF8'] },
+  shop:    { label:'Shop grid', desc:'Product-first home: category chips, photo grid and a floating action dock.', sw:['#F4F6F9','#0E2238','#F59E0B'] },
+  deck:    { label:'Flight deck (dark)', desc:'Dark, low-glare layout for dim cabins, with large flight status and action buttons.', sw:['#0D1522','#152033','#F5B544'] }
+};
+function getTheme(){
+  try{ const t = localStorage.getItem('app_theme'); return THEMES[t] ? t : 'classic'; } catch(e){ return 'classic'; }
+}
+function applyTheme(t){
+  if(!THEMES[t]) t = 'classic';
+  if(t === 'classic') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', t);
+  try{ localStorage.setItem('app_theme', t); } catch(e){}
+  state.homeCat = null;
+}
+function openThemePicker(){
+  const cur = getTheme();
+  document.getElementById('themeOptions').innerHTML = Object.keys(THEMES).map(k => `
+    <button type="button" class="theme-opt${k===cur?' on':''}" data-theme-key="${k}">
+      <span class="sw">${THEMES[k].sw.map(c => `<i style="background:${c}"></i>`).join('')}</span>
+      <span><div class="nm">${THEMES[k].label}</div><div class="ds">${THEMES[k].desc}</div></span>
+      ${k===cur ? '<span class="ck">✓</span>' : ''}
+    </button>`).join('');
+  document.getElementById('themeOverlay').classList.add('open');
+}
+function closeThemePicker(){ document.getElementById('themeOverlay').classList.remove('open'); }
+function updateThemeNav(){
+  const nav = document.getElementById('themeNav');
+  if(!nav) return;
+  const on = {
+    home: state.view === 'home' && !state.query,
+    cart: state.view === 'cart' || state.view === 'payment',
+    session: state.view === 'session',
+    stock: state.view === 'stock'
+  };
+  nav.querySelectorAll('button[data-act]').forEach(b => b.classList.toggle('on', !!on[b.dataset.act]));
+  const sBtn = document.getElementById('tnSession');
+  if(sBtn) sBtn.disabled = !isFlightOpen();
+  const badge = document.getElementById('tnBadge');
+  if(badge){
+    const n = cartCount();
+    badge.textContent = n; badge.style.display = n > 0 ? 'flex' : 'none';
+  }
+  const lbl = document.getElementById('tnStockLabel');
+  if(lbl) lbl.textContent = isFlightOpen() ? 'Edit Flight' : 'Open Flight';
+}
+(function wireThemeUi(){
+  document.getElementById('themeNav').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-act]');
+    if(!b || b.disabled) return;
+    const act = b.dataset.act;
+    if(act === 'home'){
+      state.view = 'home'; state.category = null; state.query = ''; state.allowanceQuery = '';
+      window.scrollTo(0,0); render();
+    } else if(act === 'search'){
+      state.view = 'home'; state.category = null; window.scrollTo(0,0); render();
+      const el = document.getElementById('searchInput'); if(el) el.focus();
+    } else if(act === 'cart'){ document.getElementById('cartBtn').click(); }
+    else if(act === 'session'){ document.getElementById('sessionBtn').click(); }
+    else if(act === 'stock'){ document.getElementById('stockBtn').click(); }
+  });
+  document.getElementById('themeOptions').addEventListener('click', (e) => {
+    const b = e.target.closest('.theme-opt');
+    if(!b) return;
+    applyTheme(b.dataset.themeKey);
+    closeThemePicker();
+    window.scrollTo(0,0);
+    render();
+  });
+  document.getElementById('themeCloseBtn').addEventListener('click', closeThemePicker);
+  document.getElementById('themeOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'themeOverlay') closeThemePicker();
+  });
+})();
 
 function render(){
   const main = document.getElementById('mainView');
@@ -2617,6 +2926,7 @@ function render(){
   updateStockButtonLabel();
   updateFlightInfoBar();
   updateDateTimeBar();
+  updateThemeNav();
   if(state.query.trim().length > 0){
     renderSearch(main);
     tagline.textContent = 'Searching the full catalog';
@@ -2711,7 +3021,110 @@ function wireCatalogSearchBar(){
   });
 }
 
+function utilSectionHtml(){
+  return `
+    <div class="util-section-card">
+      <div class="util-section-label">Tools & Reports</div>
+      <div class="util-row">
+        <button class="util-bar-btn" id="flightHistoryBtn" type="button">
+          <div class="util-bar-icon" style="background:linear-gradient(135deg, #4A4238 0%, #2A241C 100%);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+          </div>
+          <div class="util-bar-title">Sales History</div>
+        </button>
+        <button class="util-bar-btn" id="allowancesBtn" type="button">
+          <div class="util-bar-icon" style="background:linear-gradient(135deg, #253E6B 0%, #16223E 100%);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18"/></svg>
+          </div>
+          <div class="util-bar-title">Duty Free Allowances</div>
+        </button>
+        <button class="util-bar-btn" id="conversionRatesBtn" type="button">
+          <div class="util-bar-icon" style="background:linear-gradient(135deg, #6B5A25 0%, #3E3316 100%);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7.5" cy="9.5" r="4.5"/><circle cx="16.5" cy="14.5" r="4.5"/></svg>
+          </div>
+          <div class="util-bar-title">Currency Rates</div>
+        </button>
+      </div>
+      <button class="theme-pick-btn" id="themePickBtn" type="button"><span>Appearance</span><b>${THEMES[getTheme()].label} ›</b></button>
+    </div>
+  `;
+}
+function wireUtilSection(){
+  document.getElementById('flightHistoryBtn').addEventListener('click', () => {
+    state.view = 'flightHistory'; window.scrollTo(0,0); render();
+  });
+  document.getElementById('allowancesBtn').addEventListener('click', () => {
+    state.view = 'allowances'; window.scrollTo(0,0); render();
+  });
+  document.getElementById('conversionRatesBtn').addEventListener('click', () => {
+    state.view = 'conversionRates'; window.scrollTo(0,0); render();
+  });
+  document.getElementById('themePickBtn').addEventListener('click', openThemePicker);
+}
+
+function shopCardsHtml(items){
+  return items.map(it => {
+    const img = getItemImage(it);
+    const hasSp = it.specialPrice !== undefined;
+    const price = hasSp ? it.specialPrice : it.listedPrice;
+    const crew = getCrewPrice(it);
+    const badge = hasSp ? '<span class="shop-badge sp">Special</span>'
+      : (CASH_DISCOUNT_ITEMS.has(it.itemNo) ? `<span class="shop-badge cash">Cash −$${CASH_DISCOUNT_USD}</span>` : '');
+    const out = getStock(it.itemCode) === 0;
+    return `
+      <button type="button" class="shop-card" data-itemno="${it.itemNo}">
+        <div class="shop-img">${img ? `<img src="${img}" alt="${escapeAttr(it.name)}" loading="lazy">` : GENERIC_PHOTO_ICON}${badge}</div>
+        <div class="shop-no">Item ${String(it.itemNo).padStart(2,'0')}${out ? ' · <span class="shop-out">Out of stock</span>' : ''}</div>
+        <div class="shop-name">${escapeHtml(it.name)}</div>
+        <div class="shop-price"><b>${fmt(price)}</b>${crew !== price ? `<span>Staff ${fmt(crew)}</span>` : ''}</div>
+      </button>`;
+  }).join('');
+}
+
+function renderHomeShop(main){
+  const counts = catCounts();
+  const preCount = totalPreorderStock();
+  let html = catalogSearchBarHtml();
+  html += '<div class="shop-chips">';
+  html += `<button type="button" class="shop-chip${state.homeCat ? '' : ' on'}" data-cat="">All</button>`;
+  CATEGORY_ORDER.forEach(cat => {
+    if(!counts[cat]) return;
+    const img = CATEGORY_TILE_IMAGES[cat] || firstImageForCategory(cat);
+    html += `<button type="button" class="shop-chip${state.homeCat === cat ? ' on' : ''}" data-cat="${escapeAttr(cat)}">${img ? `<img src="${img}" alt="">` : ''}<span>${escapeHtml(catLabel(cat))}</span></button>`;
+  });
+  html += '</div>';
+  html += `
+    <button type="button" class="shop-banner" id="preOrdersCardBtn">
+      <img src="images/PRE ORDER.png" alt="">
+      <span><div class="t">Pre-Orders</div><div class="s">${preCount} unit${preCount===1?'':'s'} pending — price them and send to the cart.</div></span>
+      <span class="go">Open</span>
+    </button>`;
+  html += utilSectionHtml();
+  const items = ITEMS.filter(it => !state.homeCat || it.category === state.homeCat).sort((a,b)=>a.itemNo-b.itemNo);
+  html += `<div class="shop-head"><b>${state.homeCat ? escapeHtml(catLabel(state.homeCat)) : 'All items'}</b><span>${items.length} product${items.length===1?'':'s'}</span></div>`;
+  html += `<div class="shop-grid">${shopCardsHtml(items)}</div>`;
+  main.innerHTML = html;
+  wireCatalogSearchBar();
+  wireUtilSection();
+  document.getElementById('preOrdersCardBtn').addEventListener('click', () => {
+    state.view = 'preordersCart'; window.scrollTo(0,0); render();
+  });
+  main.querySelectorAll('.shop-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      state.homeCat = chip.dataset.cat || null;
+      renderHomeShop(main);
+    });
+  });
+  main.querySelectorAll('.shop-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const it = ITEMS.find(i => i.itemNo === Number(card.dataset.itemno));
+      if(it) openSheet(it);
+    });
+  });
+}
+
 function renderHome(main){
+  if(getTheme() === 'shop'){ renderHomeShop(main); return; }
   const counts = catCounts();
   let html = catalogSearchBarHtml();
   html += '<div class="section-label">Categories</div><div class="cat-grid">';
@@ -2742,42 +3155,10 @@ function renderHome(main){
       </div>`;
   }
   html += '</div>';
-  html += `
-    <div class="util-section-card">
-      <div class="util-section-label">Tools & Reports</div>
-      <div class="util-row">
-        <button class="util-bar-btn" id="flightHistoryBtn" type="button">
-          <div class="util-bar-icon" style="background:linear-gradient(135deg, #4A4238 0%, #2A241C 100%);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
-          </div>
-          <div class="util-bar-title">Sales History</div>
-        </button>
-        <button class="util-bar-btn" id="allowancesBtn" type="button">
-          <div class="util-bar-icon" style="background:linear-gradient(135deg, #253E6B 0%, #16223E 100%);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18"/></svg>
-          </div>
-          <div class="util-bar-title">Duty Free Allowances</div>
-        </button>
-        <button class="util-bar-btn" id="conversionRatesBtn" type="button">
-          <div class="util-bar-icon" style="background:linear-gradient(135deg, #6B5A25 0%, #3E3316 100%);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="7.5" cy="9.5" r="4.5"/><circle cx="16.5" cy="14.5" r="4.5"/></svg>
-          </div>
-          <div class="util-bar-title">Currency Rates</div>
-        </button>
-      </div>
-    </div>
-  `;
+  html += utilSectionHtml();
   main.innerHTML = html;
   wireCatalogSearchBar();
-  document.getElementById('flightHistoryBtn').addEventListener('click', () => {
-    state.view = 'flightHistory'; window.scrollTo(0,0); render();
-  });
-  document.getElementById('allowancesBtn').addEventListener('click', () => {
-    state.view = 'allowances'; window.scrollTo(0,0); render();
-  });
-  document.getElementById('conversionRatesBtn').addEventListener('click', () => {
-    state.view = 'conversionRates'; window.scrollTo(0,0); render();
-  });
+  wireUtilSection();
   document.getElementById('preOrdersCardBtn').addEventListener('click', () => {
     state.view = 'preordersCart'; window.scrollTo(0,0); render();
   });
