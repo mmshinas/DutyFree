@@ -980,6 +980,25 @@
 .avail-btn{flex:1;min-height:44px;padding:8px 10px;border-radius:12px;border:1px solid var(--hairline);background:var(--paper-raised);color:var(--ink);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .avail-btn.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 @media print{.avail-filter{display:none}}
+
+.crew-list-panel{margin:10px 0 6px;padding:12px;border:1px solid var(--hairline);border-radius:14px;background:var(--paper-raised)}
+.crew-list-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.crew-list-title{font-weight:700;font-size:1rem}
+.crew-list-sub{font-size:.78rem;color:var(--ink-soft);margin:4px 0 10px;line-height:1.4}
+.crew-btn{min-height:44px;padding:8px 14px;border-radius:12px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font:inherit;font-weight:700;font-size:.9rem;cursor:pointer}
+.crew-btn.ghost{background:transparent;color:var(--ink);border-color:var(--hairline)}
+.crew-btn:disabled{opacity:.5}
+.crew-ocr-status{font-size:.8rem;color:var(--ink-soft);margin:8px 0;min-height:1em}
+.crew-ocr-bar{height:6px;border-radius:3px;background:var(--hairline);overflow:hidden;margin-top:6px}
+.crew-ocr-bar>i{display:block;height:100%;width:0;background:var(--gold)}
+.crew-row{display:grid;grid-template-columns:72px 1fr 1fr 36px 36px;gap:4px;margin-bottom:6px;align-items:center}
+.crew-row input{min-width:0;width:100%;box-sizing:border-box;padding:10px 6px;min-height:44px;border:1px solid var(--hairline);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit;font-size:.9rem}
+.crew-row button{min-height:44px;border:1px solid var(--hairline);border-radius:10px;background:transparent;color:var(--ink);font:inherit;font-size:1rem;cursor:pointer}
+.crew-row-head{display:grid;grid-template-columns:72px 1fr 1fr 76px;gap:4px;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
+.crew-pick{width:100%;box-sizing:border-box;min-height:44px;padding:8px;border-radius:10px;border:1px solid var(--hairline);background:var(--paper);color:var(--ink);font:inherit;font-size:.9rem;margin-top:8px}
+.crew-pick.missing{border-color:var(--pink-ink)}
+.crew-manual-fields{display:grid;grid-template-columns:84px 1fr 1fr;gap:6px;margin-top:8px}
+.crew-manual-fields .crew-staff-input{width:100%;min-width:0;box-sizing:border-box}
 </style>
 </head>
 <body>
@@ -2410,7 +2429,49 @@ function setFlightNumber(val){ try{ localStorage.setItem('flight_number', val); 
 function setFlightSector(val){ try{ localStorage.setItem('flight_sector', val); } catch(e){} }
 function setFlightStaffNo(val){ try{ localStorage.setItem('flight_staff_no', val); } catch(e){} }
 function setFlightStaffName(val){ try{ localStorage.setItem('flight_staff_name', val); } catch(e){} }
+/* ---------- Crew list (per flight: staff no, first name, last name) ---------- */
+function loadCrewList(){
+  try{ const l = JSON.parse(localStorage.getItem('crew_list') || '[]'); return Array.isArray(l) ? l : []; } catch(e){ return []; }
+}
+function saveCrewList(list){ try{ localStorage.setItem('crew_list', JSON.stringify(list)); } catch(e){} }
+function titleCaseName(s){
+  return String(s||'').toLowerCase().replace(/(^|[\s\-'])([a-z])/g, (m,a,b) => a + b.toUpperCase());
+}
+function splitFullName(full){
+  const t = String(full||'').trim().split(/\s+/).filter(Boolean);
+  if(t.length === 0) return { first:'', last:'' };
+  if(t.length === 1) return { first:t[0], last:'' };
+  return { first: t.slice(0,-1).join(' '), last: t[t.length-1] };
+}
+/* First/last name of a sales-log or cart entry (older entries only have crewStaffName) */
+function crewNameParts(o){
+  if(o.crewFirstName !== undefined || o.crewLastName !== undefined){
+    return { first: o.crewFirstName || '', last: o.crewLastName || '' };
+  }
+  return splitFullName(o.crewStaffName);
+}
+/* Turn raw OCR text into crew rows. A line needs a 4-7 digit staff number; the
+   remaining words become the name (last word = last name). Reviewed by the user afterwards. */
+function parseCrewText(text){
+  const lines = String(text||'').split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  const out = [], seen = {};
+  const nameFrom = (s) => s.replace(/[^A-Za-z\s'\-\.]/g,' ').split(/\s+/).filter(w => w.replace(/[^A-Za-z]/g,'').length >= 2);
+  lines.forEach(line => {
+    const m = line.match(/(?:^|[^0-9])(\d{4,7})(?![0-9])/);
+    if(!m) return;
+    const ROLE = /^(CSS|CSA|CSD|CSM|CSE|SCSA|SCSS|ICSA|ICSD|TCSA|PUR|PSR|CCM|FA|CC|SCC|CAP|FO|SFO|SO)$/i;
+    const toks = nameFrom(line.replace(m[1], ' ')).filter(w => !ROLE.test(w.replace(/[^A-Za-z]/g,'')));
+    if(toks.length === 0 || seen[m[1]]) return;
+    seen[m[1]] = true;
+    const parts = toks.length === 1 ? { first:toks[0], last:'' } : { first: toks.slice(0,-1).join(' '), last: toks[toks.length-1] };
+    out.push({ staffNo:m[1], firstName:titleCaseName(parts.first), lastName:titleCaseName(parts.last) });
+  });
+  return out;
+}
 function clearFlightInfo(){
+  try{
+    localStorage.removeItem('crew_list');
+  } catch(e){}
   try{
     localStorage.removeItem('flight_date');
     localStorage.removeItem('flight_number');
@@ -2517,6 +2578,9 @@ function loadCart(){
     cart.forEach(c => {
       if(c.crewStaffNo === undefined) c.crewStaffNo = '';
       if(c.crewStaffName === undefined) c.crewStaffName = '';
+      if(c.crewFirstName === undefined || c.crewLastName === undefined){
+        const sp = splitFullName(c.crewStaffName); c.crewFirstName = sp.first; c.crewLastName = sp.last;
+      }
       if(!c.id) c.id = 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
     });
   } catch(e){ cart = []; }
@@ -2538,7 +2602,7 @@ function addToCart(it, qty, unitPrice, priceLabel, forceNewLine, fromPreorder){
     cart.push({
       id: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
       itemCode: it.itemCode, itemNo: it.itemNo, name: it.name, category: it.category,
-      unitPrice, priceLabel, qty, crewStaffNo: '', crewStaffName: '',
+      unitPrice, priceLabel, qty, crewStaffNo: '', crewStaffName: '', crewFirstName: '', crewLastName: '',
       fromPreorder: !!fromPreorder
     });
   }
@@ -2687,6 +2751,7 @@ function recordSale(cartEntries){
       priceLabel: c.priceLabel, unitPrice: c.unitPrice, qty: c.qty,
       lineTotal: c.qty * c.unitPrice, timestamp: ts,
       crewStaffNo: c.crewStaffNo || '', crewStaffName: c.crewStaffName || '',
+      crewFirstName: c.crewFirstName || '', crewLastName: c.crewLastName || '',
       fromPreorder: !!c.fromPreorder
     });
   });
@@ -2703,6 +2768,7 @@ function summarizeLog(log){
       map[key] = {
         itemCode:l.itemCode, name:l.name, priceLabel:l.priceLabel, unitPrice:l.unitPrice, qty:0, lineTotal:0,
         crewStaffNo: l.crewStaffNo || '', crewStaffName: l.crewStaffName || '',
+        crewFirstName: l.crewFirstName, crewLastName: l.crewLastName,
         fromPreorder: !!l.fromPreorder
       };
     }
@@ -2780,11 +2846,11 @@ function paymentLinesTotalUSD(){
 function goToPayment(){
   if(cart.length === 0) return;
   if(cartTransactionType() === 'crew'){
-    const missing = cart.some(c => !(c.crewStaffNo && c.crewStaffNo.trim()) || !(c.crewStaffName && c.crewStaffName.trim()));
+    const missing = cart.some(c => !(c.crewStaffNo && c.crewStaffNo.trim()) || !(c.crewFirstName && c.crewFirstName.trim()));
     if(missing){
-      showToast('Enter Staff No and Name for every item before completing a staff sale');
-      document.querySelectorAll('.crew-staff-input').forEach(inp => {
-        if(!inp.value.trim()) inp.classList.add('missing');
+      showToast('Select the crew member (or enter Staff No and First Name) for every item before completing a staff sale');
+      document.querySelectorAll('.crew-staff-input, .crew-pick').forEach(inp => {
+        if(!inp.value.trim() || inp.value === '__manual' && inp.classList.contains('crew-pick')) inp.classList.add('missing');
       });
       return;
     }
@@ -3213,6 +3279,101 @@ function updateStockGateState(main){
   main.querySelectorAll('.stock-input').forEach(inp => { inp.disabled = !ready; });
 }
 
+/* ---------- Crew list editor + screenshot OCR (Edit Flight page) ---------- */
+function renderCrewListEditor(){
+  const body = document.getElementById('crewListBody');
+  if(!body) return;
+  const list = loadCrewList();
+  if(list.length === 0){ body.innerHTML = '<div class="crew-list-sub">No crew added yet.</div>'; return; }
+  body.innerHTML = '<div class="crew-row-head"><span>Staff No</span><span>First name</span><span>Last name</span><span></span></div>' +
+    list.map((m,i) => `<div class="crew-row" data-i="${i}">
+      <input type="text" inputmode="numeric" data-f="staffNo" value="${escapeAttr(m.staffNo)}" aria-label="Staff No">
+      <input type="text" data-f="firstName" value="${escapeAttr(m.firstName)}" aria-label="First name">
+      <input type="text" data-f="lastName" value="${escapeAttr(m.lastName)}" aria-label="Last name">
+      <button type="button" data-act="swap" title="Swap first and last name" aria-label="Swap first and last name">⇄</button>
+      <button type="button" data-act="del" title="Remove" aria-label="Remove crew member">✕</button>
+    </div>`).join('');
+  body.querySelectorAll('.crew-row').forEach(row => {
+    const i = parseInt(row.dataset.i, 10);
+    row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', () => {
+      const l = loadCrewList(); if(!l[i]) return;
+      let v = inp.value; if(inp.dataset.f === 'staffNo'){ v = v.replace(/[^0-9]/g,''); inp.value = v; }
+      l[i][inp.dataset.f] = v; saveCrewList(l);
+    }));
+    row.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+      const l = loadCrewList(); if(!l[i]) return;
+      if(b.dataset.act === 'del') l.splice(i,1);
+      else { const t = l[i].firstName; l[i].firstName = l[i].lastName; l[i].lastName = t; }
+      saveCrewList(l); renderCrewListEditor();
+    }));
+  });
+}
+let _tesseractLoading = null;
+function loadTesseract(){
+  if(window.Tesseract) return Promise.resolve(window.Tesseract);
+  if(_tesseractLoading) return _tesseractLoading;
+  _tesseractLoading = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'ocr/tesseract.min.js';
+    s.onload = () => res(window.Tesseract);
+    s.onerror = () => { _tesseractLoading = null; rej(new Error('OCR engine could not be loaded')); };
+    document.head.appendChild(s);
+  });
+  return _tesseractLoading;
+}
+async function ocrCrewImage(file, onProgress){
+  const T = await loadTesseract();
+  const abs = (p) => new URL(p, location.href).href;
+  const worker = await T.createWorker('eng', 1, {
+    workerPath: abs('ocr/worker.min.js'),
+    corePath: abs('ocr/tesseract-core-lstm.wasm.js'),
+    langPath: abs('ocr/lang'),
+    gzip: true,
+    workerBlobURL: false,
+    logger: m => { if(m && m.status === 'recognizing text' && onProgress) onProgress(m.progress || 0); }
+  });
+  try{
+    const r = await worker.recognize(file);
+    return r.data.text || '';
+  } finally { try{ await worker.terminate(); }catch(e){} }
+}
+function wireCrewListUi(){
+  renderCrewListEditor();
+  const btn = document.getElementById('crewUploadBtn');
+  const fileIn = document.getElementById('crewFileInput');
+  const status = document.getElementById('crewOcrStatus');
+  if(!btn) return;
+  btn.addEventListener('click', () => fileIn.click());
+  document.getElementById('crewAddBtn').addEventListener('click', () => {
+    const l = loadCrewList(); l.push({ staffNo:'', firstName:'', lastName:'' }); saveCrewList(l); renderCrewListEditor();
+    const rows = document.querySelectorAll('#crewListBody .crew-row'); const last = rows[rows.length-1];
+    if(last) last.querySelector('input').focus();
+  });
+  fileIn.addEventListener('change', async () => {
+    const f = fileIn.files && fileIn.files[0];
+    fileIn.value = '';
+    if(!f) return;
+    btn.disabled = true;
+    status.innerHTML = 'Reading crew list… <div class="crew-ocr-bar"><i id="crewOcrBar"></i></div>';
+    try{
+      const text = await ocrCrewImage(f, p => { const b = document.getElementById('crewOcrBar'); if(b) b.style.width = Math.round(p*100) + '%'; });
+      const found = parseCrewText(text);
+      if(found.length === 0){
+        status.textContent = 'No crew rows could be read from that image. Try a clearer/larger screenshot, or add crew manually below.';
+      } else {
+        const l = loadCrewList();
+        let added = 0;
+        found.forEach(m => { if(!l.some(x => x.staffNo === m.staffNo)){ l.push(m); added++; } });
+        saveCrewList(l);
+        status.textContent = `Read ${found.length} crew member${found.length===1?'':'s'} (${added} added). Please check the names below — use ⇄ if first/last are the wrong way round.`;
+      }
+    } catch(e){
+      status.textContent = 'Could not read the screenshot (' + (e && e.message ? e.message : 'error') + '). You can add crew manually below.';
+    }
+    btn.disabled = false;
+    renderCrewListEditor();
+  });
+}
 function renderStock(main){
   const flightInfo = getFlightInfo();
   const flightDetailsReady = flightDetailsComplete();
@@ -3254,6 +3415,17 @@ function renderStock(main){
         <label class="flight-label" for="flightStaffNameInput">CSS Name</label>
         <input type="text" id="flightStaffNameInput" class="flight-input" placeholder="e.g. J. Perera" autocapitalize="characters" value="${escapeAttr(flightInfo.staffName)}">
       </div>
+    </div>
+    <div class="crew-list-panel" id="crewListPanel">
+      <div class="crew-list-head">
+        <div class="crew-list-title">Crew List</div>
+        <button type="button" class="crew-btn" id="crewUploadBtn">Upload crew list screenshot</button>
+      </div>
+      <input type="file" id="crewFileInput" accept="image/*" style="display:none">
+      <div class="crew-list-sub">Upload a screenshot of the crew list — Staff No and names are read on this device (no internet needed). Check and correct the list below; it is used to pick who buys Staff-priced items.</div>
+      <div class="crew-ocr-status" id="crewOcrStatus"></div>
+      <div id="crewListBody"></div>
+      <button type="button" class="crew-btn ghost" id="crewAddBtn">+ Add crew member</button>
     </div>
     <div class="stock-gate-note" id="stockGateNote" style="display:${flightDetailsReady ? 'none' : 'flex'};">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r="0.6" fill="currentColor"/></svg>
@@ -3341,6 +3513,7 @@ function renderStock(main){
     setFlightStaffName(input.value);
     updateStockGateState(main);
   });
+  wireCrewListUi();
   document.getElementById('saveStockBtn').addEventListener('click', () => {
     document.activeElement && document.activeElement.blur();
     showToast('Opening stock saved');
@@ -3698,6 +3871,23 @@ function renderPreOrdersCart(main){
   });
 }
 
+function crewPickerHtml(c){
+  const list = loadCrewList();
+  const matched = !c.crewManual && c.crewStaffNo && list.some(m => m.staffNo === c.crewStaffNo);
+  const showManual = c.crewManual || list.length === 0;
+  const opts = list.map(m => `<option value="${escapeAttr(m.staffNo)}"${matched && m.staffNo === c.crewStaffNo ? ' selected' : ''}>${escapeHtml(m.staffNo)} · ${escapeHtml((m.firstName + ' ' + m.lastName).trim())}</option>`).join('');
+  return `
+        ${list.length ? `<select class="crew-pick" aria-label="Crew member buying this item">
+          <option value=""${!matched && !c.crewManual ? ' selected' : ''}>Select crew member…</option>
+          ${opts}
+          <option value="__manual"${c.crewManual ? ' selected' : ''}>Other — type manually</option>
+        </select>` : ''}
+        ${showManual ? `<div class="crew-manual-fields">
+          <input type="text" class="crew-staff-input staff-no-input" data-field="crewStaffNo" placeholder="Staff No" inputmode="numeric" value="${escapeAttr(c.crewStaffNo || '')}">
+          <input type="text" class="crew-staff-input" data-field="crewFirstName" placeholder="First name" value="${escapeAttr(c.crewFirstName || '')}">
+          <input type="text" class="crew-staff-input" data-field="crewLastName" placeholder="Last name" value="${escapeAttr(c.crewLastName || '')}">
+        </div>` : ''}`;
+}
 function renderCart(main){
   if(cart.length === 0){
     main.innerHTML = `
@@ -3727,11 +3917,7 @@ function renderCart(main){
           <button class="qty-btn sm" type="button" data-action="inc">+</button>
           <button class="cart-remove" type="button" data-action="remove">Remove</button>
         </div>
-        ${isCrewCart ? `
-        <div class="crew-staff-fields">
-          <input type="text" class="crew-staff-input staff-no-input" data-field="crewStaffNo" placeholder="Staff No" inputmode="numeric" value="${escapeAttr(c.crewStaffNo || '')}">
-          <input type="text" class="crew-staff-input staff-name-input" data-field="crewStaffName" placeholder="Staff Name" autocapitalize="characters" value="${escapeAttr(c.crewStaffName || '')}">
-        </div>` : ''}
+        ${isCrewCart ? crewPickerHtml(c) : ''}
       </div>
       <div class="item-price">
         <div class="amt">${fmt(c.qty * c.unitPrice)}</div>
@@ -3742,7 +3928,7 @@ function renderCart(main){
   main.innerHTML = `
     <div class="list-title">Cart</div>
     <div class="list-count">${cart.length} line item${cart.length===1?'':'s'} · ${cartCount()} unit${cartCount()===1?'':'s'}</div>
-    ${isCrewCart ? '<div class="stock-note" style="margin:0 0 4px;">Staff sale — enter the Staff No and Name for each item before completing the sale.</div>' : ''}
+    ${isCrewCart ? '<div class="stock-note" style="margin:0 0 4px;">Staff sale — select the crew member buying each item before completing the sale.</div>' : ''}
     ${rowsHtml}
     <div class="cart-footer">
       <div class="cart-total-line"><span>Total</span><span class="mono">${fmt(cartTotal())}</span></div>
@@ -3752,24 +3938,38 @@ function renderCart(main){
     ${floatingHomeBarHtml()}
   `;
 
+  main.querySelectorAll('.crew-pick').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const row = sel.closest('.cart-row');
+      const entry = cart.find(c => c.id === row.dataset.id);
+      if(!entry) return;
+      if(sel.value === '__manual'){
+        entry.crewManual = true;
+      } else if(sel.value === ''){
+        entry.crewManual = false;
+        entry.crewStaffNo = ''; entry.crewFirstName = ''; entry.crewLastName = ''; entry.crewStaffName = '';
+      } else {
+        const m = loadCrewList().find(x => x.staffNo === sel.value);
+        entry.crewManual = false;
+        if(m){
+          entry.crewStaffNo = m.staffNo; entry.crewFirstName = m.firstName; entry.crewLastName = m.lastName;
+          entry.crewStaffName = (m.firstName + ' ' + m.lastName).trim().toUpperCase();
+        }
+      }
+      saveCart();
+      renderCart(main);
+    });
+  });
   main.querySelectorAll('.crew-staff-input').forEach(inp => {
     inp.addEventListener('input', () => {
-      const start = inp.selectionStart;
-      const end = inp.selectionEnd;
-      const before = inp.value;
       if(inp.classList.contains('staff-no-input')){
         inp.value = inp.value.replace(/[^0-9]/g, '');
-      } else if(inp.classList.contains('staff-name-input')){
-        inp.value = inp.value.toUpperCase();
-      }
-      if(inp.value !== before){
-        const shift = inp.value.length - before.length;
-        inp.setSelectionRange(Math.max(0, start + shift), Math.max(0, end + shift));
       }
       const row = inp.closest('.cart-row');
       const entry = cart.find(c => c.id === row.dataset.id);
       if(entry){
         entry[inp.dataset.field] = inp.value;
+        entry.crewStaffName = ((entry.crewFirstName || '') + ' ' + (entry.crewLastName || '')).trim().toUpperCase();
         saveCart();
       }
       if(inp.value.trim()) inp.classList.remove('missing');
@@ -3874,12 +4074,14 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
       </tr>`).join('');
   }
   function crewSalesRows(items){
-    if(items.length === 0) return '<tr><td colspan="6" class="rpt-empty">No items in this section.</td></tr>';
+    if(items.length === 0) return '<tr><td colspan="8" class="rpt-empty">No items in this section.</td></tr>';
     return items.map(i => `
       <tr>
         <td>${escapeHtml(i.name)}</td>
         <td>${escapeHtml(i.itemCode)}</td>
-        <td>${escapeHtml(i.crewStaffNo || '—')} · ${escapeHtml(i.crewStaffName || '—')}</td>
+        <td>${escapeHtml(i.crewStaffNo || '—')}</td>
+        <td>${escapeHtml(crewNameParts(i).first || '—')}</td>
+        <td>${escapeHtml(crewNameParts(i).last || '—')}</td>
         <td class="num">${i.qty}</td>
         <td class="num">${fmt(i.unitPrice)}</td>
         <td class="num">${fmt(i.lineTotal)}</td>
@@ -3933,7 +4135,7 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
 
       <div class="rpt-section-title">Normal Sales to Staff</div>
       <table class="rpt-table">
-        <tr><th>Item</th><th>Code</th><th>Staff No / Name</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
+        <tr><th>Item</th><th>Code</th><th>Staff No</th><th>First Name</th><th>Last Name</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
         ${crewSalesRows(crewItems)}
         <tr class="rpt-subtotal-row"><td colspan="5">Subtotal</td><td class="num">${fmt(crewTotal)}</td></tr>
       </table>
@@ -3947,7 +4149,7 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
 
       <div class="rpt-section-title">Pre-orders to Staff</div>
       <table class="rpt-table">
-        <tr><th>Item</th><th>Code</th><th>Staff No / Name</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
+        <tr><th>Item</th><th>Code</th><th>Staff No</th><th>First Name</th><th>Last Name</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
         ${crewSalesRows(preorderCrewItems)}
         <tr class="rpt-subtotal-row"><td colspan="5">Subtotal</td><td class="num">${fmt(preorderCrewTotal)}</td></tr>
       </table>
@@ -4236,7 +4438,7 @@ function renderSessionSummary(main){
       <div class="session-row">
         <div class="session-row-mid">
           <div class="item-name">${escapeHtml(i.name)}</div>
-          <div class="item-code mono">${escapeHtml(i.itemCode)} · ${fmt(i.unitPrice)} × ${i.qty}${i.priceLabel === 'Crew' ? ` · ${escapeHtml(i.crewStaffNo || '—')} ${escapeHtml(i.crewStaffName || '—')}` : ''}</div>
+          <div class="item-code mono">${escapeHtml(i.itemCode)} · ${fmt(i.unitPrice)} × ${i.qty}${i.priceLabel === 'Crew' ? ` · ${escapeHtml(i.crewStaffNo || '—')} ${escapeHtml((crewNameParts(i).first + ' ' + crewNameParts(i).last).trim() || '—')}` : ''}</div>
           <span class="session-tag">${escapeHtml(displayPriceLabel(i.priceLabel))}</span>
         </div>
         <div class="item-price">
