@@ -973,6 +973,11 @@
   html[data-theme="deck"] .floating-bar{ background:linear-gradient(to top, var(--paper) 65%, rgba(13,21,34,0)); }
   html[data-theme="deck"] .floating-save-btn{ background:var(--gold); color:#1A1200; }
 }
+
+.avail-filter{display:flex;gap:8px;margin:4px 0 10px}
+.avail-btn{flex:1;min-height:44px;padding:8px 10px;border-radius:12px;border:1px solid var(--hairline);background:var(--paper-raised);color:var(--ink);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
+.avail-btn.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+@media print{.avail-filter{display:none}}
 </style>
 </head>
 <body>
@@ -3177,14 +3182,24 @@ function renderHome(main){
 }
 
 function renderCategory(main, cat){
-  const items = ITEMS.filter(it => it.category === cat).sort((a,b)=>a.itemNo-b.itemNo);
+  const all = ITEMS.filter(it => it.category === cat).sort((a,b)=>a.itemNo-b.itemNo);
+  const onlyAvail = state.onlyAvailable === true;
+  const items = onlyAvail ? all.filter(it => getStock(it.itemCode) > 0) : all;
   let html = `
     <div class="list-title">${catLabel(cat)}</div>
-    <div class="list-count">${items.length} item${items.length===1?'':'s'}</div>
+    <div class="avail-filter" role="group" aria-label="Stock filter">
+      <button type="button" class="avail-btn${onlyAvail?'':' active'}" data-avail="all">Show All</button>
+      <button type="button" class="avail-btn${onlyAvail?' active':''}" data-avail="only">Show only available</button>
+    </div>
+    <div class="list-count">${items.length} item${items.length===1?'':'s'}${onlyAvail ? ' in stock (of ' + all.length + ')' : ''}</div>
   `;
-  html += renderRows(items);
+  html += items.length ? renderRows(items) : '<div class="list-count" style="padding:24px 0;text-align:center">No items in stock in this category.</div>';
   html += floatingHomeBarHtml();
   main.innerHTML = html;
+  main.querySelectorAll('.avail-btn').forEach(b => b.addEventListener('click', () => {
+    state.onlyAvailable = b.dataset.avail === 'only';
+    renderCategory(main, cat);
+  }));
   attachRowHandlers(main, items);
   wireFloatingHomeBar();
 }
