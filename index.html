@@ -556,6 +556,8 @@
   .list-title{
     font-size:1.35rem; font-weight:700; margin: 6px 0 2px;
   }
+  .list-title{ text-align:center; }
+  .list-title + .list-count, .list-title + .avail-filter + .list-count{ text-align:center; }
   .list-count{
     font-family: ui-monospace, "Courier New", monospace;
     font-size:0.7rem; color:var(--ink-soft); letter-spacing:0.08em;
@@ -3186,7 +3188,7 @@ function renderCategory(main, cat){
   const onlyAvail = state.onlyAvailable === true;
   const items = onlyAvail ? all.filter(it => getStock(it.itemCode) > 0) : all;
   let html = `
-    <div class="list-title">${catLabel(cat)}</div>
+    <div class="list-title list-title-center">${catLabel(cat)}</div>
     <div class="avail-filter" role="group" aria-label="Stock filter">
       <button type="button" class="avail-btn${onlyAvail?'':' active'}" data-avail="all">Show All</button>
       <button type="button" class="avail-btn${onlyAvail?' active':''}" data-avail="only">Show only available</button>
@@ -3364,7 +3366,7 @@ function renderStockCategoryDetail(main, cat){
   const confirmed = isCategoryConfirmed(cat);
 
   let html = `
-    <div class="list-title">${escapeHtml(catLabel(cat))}</div>
+    <div class="list-title list-title-center">${escapeHtml(catLabel(cat))}</div>
     <div class="list-count">Enter the opening stock count for each item, then confirm</div>
   `;
   html += items.map(it => {
