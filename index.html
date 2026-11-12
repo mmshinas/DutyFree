@@ -1004,6 +1004,8 @@
 .crew-actions .crew-btn{flex:1}
 .crew-ro-row{display:grid;grid-template-columns:72px 1fr 1fr;gap:6px;padding:9px 4px;border-bottom:1px solid var(--hairline);font-size:.92rem}
 .crew-row-head.crew-ro{grid-template-columns:72px 1fr 1fr;padding:0 4px}
+
+.sheet-crew{margin:8px 0 4px;padding:10px;border:1px solid var(--hairline);border-radius:12px;background:var(--paper-raised)}
 </style>
 </head>
 <body>
@@ -2626,14 +2628,19 @@ function availableStock(itemCode){
   const stock = getStock(itemCode);
   return Math.max(0, stock - cartQtyFor(itemCode));
 }
-function addToCart(it, qty, unitPrice, priceLabel, forceNewLine, fromPreorder){
-  const existing = !forceNewLine ? cart.find(c => c.itemCode === it.itemCode && c.priceLabel === priceLabel) : null;
+let lastSheetCrew = { staffNo:'', firstName:'', lastName:'', manual:false };
+function addToCart(it, qty, unitPrice, priceLabel, forceNewLine, fromPreorder, crew){
+  const crewNo = (crew && crew.staffNo) || '';
+  const existing = !forceNewLine ? cart.find(c => c.itemCode === it.itemCode && c.priceLabel === priceLabel && (priceLabel !== 'Crew' || (c.crewStaffNo || '') === crewNo)) : null;
   if(existing){ existing.qty += qty; }
   else{
     cart.push({
       id: 'c_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
       itemCode: it.itemCode, itemNo: it.itemNo, name: it.name, category: it.category,
-      unitPrice, priceLabel, qty, crewStaffNo: '', crewStaffName: '', crewFirstName: '', crewLastName: '',
+      unitPrice, priceLabel, qty,
+      crewStaffNo: crewNo, crewFirstName: (crew && crew.firstName) || '', crewLastName: (crew && crew.lastName) || '',
+      crewStaffName: crew ? ((crew.firstName || '') + ' ' + (crew.lastName || '')).trim().toUpperCase() : '',
+      crewManual: !!(crew && crew.manual),
       fromPreorder: !!fromPreorder
     });
   }
@@ -5049,6 +5056,36 @@ function attachRowHandlers(main, items){
   });
 }
 
+function sheetCrewHtml(){
+  const list = loadCrewList();
+  const lc = lastSheetCrew;
+  const matched = !lc.manual && lc.staffNo && list.some(m => m.staffNo === lc.staffNo);
+  const showManual = lc.manual || list.length === 0;
+  const opts = list.map(m => `<option value="${escapeAttr(m.staffNo)}"${matched && m.staffNo === lc.staffNo ? ' selected' : ''}>${escapeHtml(m.staffNo)} · ${escapeHtml((m.firstName + ' ' + m.lastName).trim())}</option>`).join('');
+  return `
+    <div class="sheet-crew" id="sheetCrew" style="display:none">
+      <div class="flight-label">Staff member purchasing</div>
+      ${list.length ? `<select class="crew-pick" id="sheetCrewSelect" aria-label="Staff member purchasing">
+        <option value=""${!matched && !lc.manual ? ' selected' : ''}>Select crew member…</option>
+        ${opts}
+        <option value="__manual"${lc.manual ? ' selected' : ''}>Other — type manually</option>
+      </select>` : '<div class="crew-list-sub">No crew list saved on the Open Flight page — enter the staff member below.</div>'}
+      <div class="crew-manual-fields" id="sheetCrewManual" style="display:${showManual ? 'grid' : 'none'}">
+        <input type="text" class="crew-staff-input" id="sheetCrewNo" placeholder="Staff No" inputmode="numeric" value="${escapeAttr(lc.manual || !list.length ? lc.staffNo : '')}">
+        <input type="text" class="crew-staff-input" id="sheetCrewFirst" placeholder="First name" value="${escapeAttr(lc.manual || !list.length ? lc.firstName : '')}">
+        <input type="text" class="crew-staff-input" id="sheetCrewLast" placeholder="Last name" value="${escapeAttr(lc.manual || !list.length ? lc.lastName : '')}">
+      </div>
+    </div>`;
+}
+function readSheetCrew(){
+  const sel = document.getElementById('sheetCrewSelect');
+  if(sel && sel.value && sel.value !== '__manual'){
+    const m = loadCrewList().find(x => x.staffNo === sel.value);
+    if(m) return { staffNo:m.staffNo, firstName:m.firstName, lastName:m.lastName, manual:false };
+  }
+  const no = (document.getElementById('sheetCrewNo')||{}).value || '';
+  return { staffNo:no.trim(), firstName:((document.getElementById('sheetCrewFirst')||{}).value||'').trim(), lastName:((document.getElementById('sheetCrewLast')||{}).value||'').trim(), manual:true };
+}
 function openSheet(it){
   currentSheetItem = it;
   const sheet = document.getElementById('sheet');
@@ -5135,6 +5172,7 @@ function openSheet(it){
     <div class="sale-panel">
       <div class="stock-line${isBlocked ? ' out-of-stock' : ''}">${stockLineText}</div>
       ${priceChoiceHtml}
+      ${sheetCrewHtml()}
       <div class="qty-stepper">
         <button class="qty-btn" type="button" id="qtyDec" ${disabledAttr}>−</button>
         <input type="number" class="qty-input" id="qtyInput" value="${startQty}" min="1"${maxAttr} ${disabledAttr}>
@@ -5175,6 +5213,28 @@ function openSheet(it){
       label.classList.add('selected');
     });
   });
+  const syncSheetCrew = () => {
+    const box = document.getElementById('sheetCrew'); if(!box) return;
+    const sel = sheet.querySelector('input[name="priceChoice"]:checked');
+    const crewOn = sheet.querySelector('.price-opt.selected[data-value="crew"]') || (sel && sel.value === 'crew');
+    box.style.display = crewOn ? 'block' : 'none';
+  };
+  sheet.querySelectorAll('.price-opt').forEach(label => label.addEventListener('click', () => setTimeout(syncSheetCrew, 0)));
+  syncSheetCrew();
+  const crewSel = document.getElementById('sheetCrewSelect');
+  if(crewSel) crewSel.addEventListener('change', () => {
+    const man = document.getElementById('sheetCrewManual');
+    if(crewSel.value === '__manual'){ man.style.display = 'grid'; lastSheetCrew = { staffNo:'', firstName:'', lastName:'', manual:true }; }
+    else { man.style.display = 'none'; const c = readSheetCrew(); lastSheetCrew = { ...c, manual:false }; }
+    crewSel.classList.remove('missing');
+  });
+  ['sheetCrewNo','sheetCrewFirst','sheetCrewLast'].forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    el.addEventListener('input', () => {
+      if(id === 'sheetCrewNo') el.value = el.value.replace(/[^0-9]/g,'');
+      lastSheetCrew = readSheetCrew(); el.classList.remove('missing');
+    });
+  });
   const qtyInput = document.getElementById('qtyInput');
   document.getElementById('qtyDec')?.addEventListener('click', () => {
     let v = parseInt(qtyInput.value, 10) || 1;
@@ -5206,8 +5266,18 @@ function openSheet(it){
       showToast(`Cart already has ${existingType === 'crew' ? 'staff' : existingType} sales — clear or complete it before adding ${newType === 'crew' ? 'staff' : newType} sales.`);
       return;
     }
-    addToCart(it, qty, unitPrice, priceLabel);
-    showToast(`Added ${qty} × ${it.name} to cart`);
+    let crew = null;
+    if(priceLabel === 'Crew'){
+      crew = readSheetCrew();
+      if(!crew.staffNo || !crew.firstName){
+        showToast('Select the staff member buying this item (or enter Staff No and First name)');
+        ['sheetCrewSelect','sheetCrewNo','sheetCrewFirst'].forEach(id => { const el = document.getElementById(id); if(el && (!el.value || el.value === '__manual')) el.classList.add('missing'); });
+        return;
+      }
+      lastSheetCrew = { ...crew };
+    }
+    addToCart(it, qty, unitPrice, priceLabel, false, false, crew);
+    showToast(`Added ${qty} × ${it.name} to cart${crew ? ' for ' + crew.firstName + ' ' + crew.lastName : ''}`);
     updateCartBadge();
     openSheet(it);
   });
