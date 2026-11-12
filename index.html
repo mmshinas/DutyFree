@@ -999,6 +999,11 @@
 .crew-pick.missing{border-color:var(--pink-ink)}
 .crew-manual-fields{display:grid;grid-template-columns:84px 1fr 1fr;gap:6px;margin-top:8px}
 .crew-manual-fields .crew-staff-input{width:100%;min-width:0;box-sizing:border-box}
+
+.crew-actions{display:flex;gap:8px;margin-top:6px}
+.crew-actions .crew-btn{flex:1}
+.crew-ro-row{display:grid;grid-template-columns:72px 1fr 1fr;gap:6px;padding:9px 4px;border-bottom:1px solid var(--hairline);font-size:.92rem}
+.crew-row-head.crew-ro{grid-template-columns:72px 1fr 1fr;padding:0 4px}
 </style>
 </head>
 <body>
@@ -2433,6 +2438,8 @@ function setFlightStaffName(val){ try{ localStorage.setItem('flight_staff_name',
 function loadCrewList(){
   try{ const l = JSON.parse(localStorage.getItem('crew_list') || '[]'); return Array.isArray(l) ? l : []; } catch(e){ return []; }
 }
+function isCrewSaved(){ try{ return localStorage.getItem('crew_list_saved') === '1' && loadCrewList().length > 0; } catch(e){ return false; } }
+function setCrewSaved(v){ try{ if(v) localStorage.setItem('crew_list_saved','1'); else localStorage.removeItem('crew_list_saved'); } catch(e){} }
 function saveCrewList(list){ try{ localStorage.setItem('crew_list', JSON.stringify(list)); } catch(e){} }
 function titleCaseName(s){
   return String(s||'').toLowerCase().replace(/(^|[\s\-'])([a-z])/g, (m,a,b) => a + b.toUpperCase());
@@ -2494,6 +2501,7 @@ function parseCrewPasted(text){
 function clearFlightInfo(){
   try{
     localStorage.removeItem('crew_list');
+    localStorage.removeItem('crew_list_saved');
   } catch(e){}
   try{
     localStorage.removeItem('flight_date');
@@ -3303,10 +3311,24 @@ function updateStockGateState(main){
 }
 
 /* ---------- Crew list editor + screenshot OCR (Edit Flight page) ---------- */
+function applyCrewMode(){
+  const saved = isCrewSaved();
+  const tools = document.getElementById('crewEditTools'), add = document.getElementById('crewAddBtn'), sv = document.getElementById('crewSaveBtn');
+  if(tools) tools.style.display = saved ? 'none' : '';
+  if(add) add.style.display = saved ? 'none' : '';
+  if(sv){ sv.textContent = saved ? 'Edit' : 'Save'; sv.classList.toggle('ghost', saved); }
+}
 function renderCrewListEditor(){
   const body = document.getElementById('crewListBody');
   if(!body) return;
   const list = loadCrewList();
+  applyCrewMode();
+  if(isCrewSaved()){
+    body.innerHTML = '<div class="crew-row-head crew-ro"><span>Staff No</span><span>First name</span><span>Last name</span></div>' +
+      list.map(m => `<div class="crew-ro-row"><span class="mono">${escapeHtml(m.staffNo)}</span><span>${escapeHtml(m.firstName)}</span><span>${escapeHtml(m.lastName)}</span></div>`).join('') +
+      `<div class="crew-list-sub" style="margin-top:8px">${list.length} crew member${list.length===1?'':'s'} saved.</div>`;
+    return;
+  }
   if(list.length === 0){ body.innerHTML = '<div class="crew-list-sub">No crew added yet.</div>'; return; }
   body.innerHTML = '<div class="crew-row-head"><span>Staff No</span><span>First name</span><span>Last name</span><span></span></div>' +
     list.map((m,i) => `<div class="crew-row" data-i="${i}">
@@ -3500,6 +3522,15 @@ function wireCrewListUi(){
   const status = document.getElementById('crewOcrStatus');
   if(!btn) return;
   btn.addEventListener('click', () => fileIn.click());
+  document.getElementById('crewSaveBtn').addEventListener('click', () => {
+    if(isCrewSaved()){ setCrewSaved(false); renderCrewListEditor(); return; }
+    document.activeElement && document.activeElement.blur();
+    const clean = loadCrewList().filter(m => (m.staffNo||'').trim() || (m.firstName||'').trim() || (m.lastName||'').trim());
+    if(clean.length === 0){ status.textContent = 'Add at least one crew member before saving.'; return; }
+    if(clean.some(m => !(m.staffNo||'').trim() || !(m.firstName||'').trim())){ status.textContent = 'Every crew member needs a Staff No and First name before saving.'; return; }
+    saveCrewList(clean); setCrewSaved(true); status.textContent = '';
+    renderCrewListEditor(); showToast('Crew list saved');
+  });
   document.getElementById('crewPasteToggle').addEventListener('click', () => {
     const box = document.getElementById('crewPasteBox'); box.style.display = box.style.display === 'none' ? 'block' : 'none';
   });
@@ -3588,10 +3619,11 @@ function renderStock(main){
     <div class="crew-list-panel" id="crewListPanel">
       <div class="crew-list-head">
         <div class="crew-list-title">Crew List</div>
-        <button type="button" class="crew-btn" id="crewUploadBtn">Upload crew list screenshot</button>
       </div>
+      <div id="crewEditTools">
+      <button type="button" class="crew-btn" id="crewUploadBtn" style="width:100%;margin:8px 0 6px">Upload crew list screenshot</button>
       <input type="file" id="crewFileInput" accept="image/*" style="display:none">
-      <div class="crew-list-sub">Best: copy the crew table from the crew portal and use <b>Paste copied crew list text</b> (exact). Or upload a screenshot — zoom in on the Crew onboard table first so the text is large; it is read on this device but is only approximate, so always check the list below. It is used to pick who buys Staff-priced items.</div>
+      <div class="crew-list-sub" id="crewHelp">Best: copy the crew table from the crew portal and use <b>Paste copied crew list text</b> (exact). Or upload a screenshot — zoom in on the Crew onboard table first so the text is large; it is read on this device but is only approximate, so always check the list below. It is used to pick who buys Staff-priced items.</div>
       <button type="button" class="crew-btn ghost" id="crewPasteToggle" style="width:100%;margin-bottom:6px">Paste copied crew list text</button>
       <div id="crewPasteBox" style="display:none;margin-bottom:8px">
         <div class="crew-list-sub">On the crew portal page, select the crew table, copy it, and paste it here. This is more accurate than a screenshot.</div>
@@ -3599,8 +3631,12 @@ function renderStock(main){
         <button type="button" class="crew-btn" id="crewPasteAdd" style="margin-top:6px">Add crew from pasted text</button>
       </div>
       <div class="crew-ocr-status" id="crewOcrStatus"></div>
+      </div>
       <div id="crewListBody"></div>
-      <button type="button" class="crew-btn ghost" id="crewAddBtn">+ Add crew member</button>
+      <div class="crew-actions">
+        <button type="button" class="crew-btn ghost" id="crewAddBtn">+ Add crew member</button>
+        <button type="button" class="crew-btn" id="crewSaveBtn">Save</button>
+      </div>
     </div>
     <div class="stock-gate-note" id="stockGateNote" style="display:${flightDetailsReady ? 'none' : 'flex'};">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r="0.6" fill="currentColor"/></svg>
@@ -3697,13 +3733,14 @@ function renderStock(main){
     render();
   });
   document.getElementById('resetStockBtn').addEventListener('click', () => {
-    showConfirm('Reset opening stock for all items? This cannot be undone.', () => {
+    showConfirm('Reset opening stock for all items and clear the crew list? This cannot be undone.', () => {
+      saveCrewList([]); setCrewSaved(false);
       resetAllStock();
       clearAllOpeningStockSnapshots();
       clearConfirmedCategories();
       clearPreOrders();
       preorderCartDrafts = {};
-      showToast('All opening stock values reset');
+      showToast('Opening stock and crew list reset');
       renderStock(main);
     });
   });
