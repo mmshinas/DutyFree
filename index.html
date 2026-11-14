@@ -4378,24 +4378,18 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
     const rate = c.usd > 0 ? c.foreign / c.usd : 0;
     collectRows.push(`<tr><td>Cash — ${escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? fmt(c.foreign) : money2(c.foreign) + ' ' + escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? '—' : 'USD 1 = ' + rate.toLocaleString('en-US',{maximumFractionDigits:4}) + ' ' + escapeHtml(cur)}</td><td class="num">${money2(c.usd)}</td></tr>`);
   });
-  paySummary.cardTxns.forEach((amt, idx) => {
-    collectRows.push(`<tr><td>Credit card — transaction ${idx+1}</td><td class="num">${money2(amt)} USD</td><td class="num">—</td><td class="num">${money2(amt)}</td></tr>`);
-  });
-  if(paySummary.cardTxns.length > 1){
-    collectRows.push(`<tr class="rpt-subtotal-row"><td colspan="3">Credit card total (${paySummary.cardTxns.length} transactions)</td><td class="num">${money2(paySummary.cardUSD)}</td></tr>`);
+  if(paySummary.cardTxns.length){
+    collectRows.push(`<tr><td colspan="3">CC Sales (USD) — ${paySummary.cardTxns.map(a => '$' + money2(a)).join(' + ')}</td><td class="num">$${money2(paySummary.cardUSD)}</td></tr>`);
   }
   if(paySummary.voucherUSD > 0){
     collectRows.push(`<tr><td>Onboard vouchers</td><td class="num">${money2(paySummary.voucherUSD)} USD</td><td class="num">—</td><td class="num">${money2(paySummary.voucherUSD)}</td></tr>`);
   }
-  const diff = grandTotal - paySummary.totalUSD;
   const section1 = `
       <div class="rpt-section-title">1. Total Sales &amp; Collections</div>
-      <div class="rpt-grand-total"><span>Total sales (USD)</span><span>${fmt(grandTotal)}</span></div>
       <table class="rpt-table">
         <tr><th>Collected as</th><th class="num">Amount</th><th class="num">Rate</th><th class="num">USD equivalent</th></tr>
         ${collectRows.length ? collectRows.join('') : '<tr><td colspan="4" class="rpt-empty">No payments recorded for this flight.</td></tr>'}
-        <tr class="rpt-subtotal-row"><td colspan="3">Total collected (USD)</td><td class="num">${money2(paySummary.totalUSD)}</td></tr>
-        ${Math.abs(diff) >= 0.5 ? `<tr><td colspan="3">Difference to total sales</td><td class="num">${money2(diff)}</td></tr>` : ''}
+        <tr class="rpt-subtotal-row"><td colspan="3">Total Sales (USD) — cash + CC${paySummary.voucherUSD > 0 ? ' + vouchers' : ''}</td><td class="num">$${money2(paySummary.totalUSD)}</td></tr>
       </table>`;
 
   // ---- Section 2: passengers vs staff ----
@@ -4421,14 +4415,10 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
       <table class="rpt-meta">
         <tr><td class="rpt-label">Commission-eligible sales (total passenger sales)</td><td>${fmt(incentiveEligibleUSD)}</td></tr>
         <tr><td class="rpt-label">Commission rate</td><td>${(incentiveRate*100).toFixed(0)}%</td></tr>
-        <tr><td class="rpt-label">Total commission (USD)</td><td>${money2(incentiveUSD)}</td></tr>
-        <tr><td class="rpt-label">Conversion rate</td><td>USD 1 = LKR ${incentiveLKRRate.toFixed(2)}</td></tr>
-        <tr><td class="rpt-label">Total commission (LKR)</td><td>LKR ${money2(incentiveLKR)}</td></tr>
-        <tr><td class="rpt-label">Aircraft type</td><td>${aircraftLabel}${divisor ? ' — shared by ' + divisor : ''}</td></tr>
+        <tr><td class="rpt-label">Total commission</td><td>USD $${money2(incentiveUSD)} &nbsp;|&nbsp; LKR ${money2(incentiveLKR)} <span style="color:#666">(USD 1 = LKR ${incentiveLKRRate.toFixed(2)})</span></td></tr>
         ${divisor
-          ? `<tr><td class="rpt-label"><b>Commission per person (USD)</b></td><td><b>${money2(perUSD)}</b></td></tr>
-             <tr><td class="rpt-label"><b>Commission per person (LKR)</b></td><td><b>LKR ${money2(perLKR)}</b></td></tr>`
-          : '<tr><td class="rpt-label">Commission per person</td><td>Aircraft type was not recorded for this flight</td></tr>'}
+          ? `<tr><td class="rpt-label"><b>Commission Per Person</b></td><td><b>LKR ${money2(perLKR)}</b> <span style="color:#666">(USD $${money2(perUSD)} · ${meta.aircraft === 'wide' ? 'Wide Body' : 'Narrow Body'} · shared by ${divisor})</span></td></tr>`
+          : '<tr><td class="rpt-label">Commission Per Person</td><td>Aircraft type was not recorded for this flight</td></tr>'}
       </table>`;
 
   const now = new Date();
