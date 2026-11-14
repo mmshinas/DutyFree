@@ -976,7 +976,7 @@
   html[data-theme="deck"] .floating-save-btn{ background:var(--gold); color:#1A1200; }
 }
 
-.avail-filter{display:flex;gap:8px;margin:4px 0 10px}
+.avail-filter{display:flex;gap:8px;margin:4px 0 10px;position:sticky;top:var(--hdr-h,0px);z-index:15;background:var(--paper);padding:8px 0;box-shadow:0 1px 0 var(--hairline)}
 .avail-btn{flex:1;min-height:44px;padding:8px 10px;border-radius:12px;border:1px solid var(--hairline);background:var(--paper-raised);color:var(--ink);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .avail-btn.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 @media print{.avail-filter{display:none}}
@@ -1012,6 +1012,11 @@
 .cart-pick input,.cart-selall input{width:22px;height:22px;accent-color:var(--ink);cursor:pointer}
 .cart-row.unticked{opacity:.55}
 .cart-selall{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 2px;font-weight:600;font-size:.95rem}
+
+.disc-banner{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:4px 10px;border-radius:999px;background:#1F7A3D;color:#fff;font-size:.78rem;line-height:1.2;letter-spacing:.01em;box-shadow:0 1px 0 rgba(0,0,0,.15)}
+.disc-banner b{font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.disc-banner span{font-size:.68rem;font-weight:700;background:rgba(255,255,255,.22);padding:1px 6px;border-radius:999px;text-transform:uppercase}
+@media print{.disc-banner{display:none}}
 </style>
 </head>
 <body>
@@ -3198,7 +3203,7 @@ function shopCardsHtml(items){
     const price = hasSp ? it.specialPrice : it.listedPrice;
     const crew = getCrewPrice(it);
     const badge = hasSp ? '<span class="shop-badge sp">Special</span>'
-      : (CASH_DISCOUNT_ITEMS.has(it.itemNo) ? `<span class="shop-badge cash">Cash −$${CASH_DISCOUNT_USD}</span>` : '');
+      : (CASH_DISCOUNT_ITEMS.has(it.itemNo) ? `<span class="shop-badge cash">USD ${CASH_DISCOUNT_USD} Discount</span>` : '');
     const out = getStock(it.itemCode) === 0;
     return `
       <button type="button" class="shop-card" data-itemno="${it.itemNo}">
@@ -3320,6 +3325,10 @@ function renderCategory(main, cat){
   html += items.length ? renderRows(items) : '<div class="list-count" style="padding:24px 0;text-align:center">No items in stock in this category.</div>';
   html += floatingHomeBarHtml();
   main.innerHTML = html;
+  const hdr = document.querySelector('header.top');
+  const setHdr = () => document.documentElement.style.setProperty('--hdr-h', (hdr ? Math.round(hdr.getBoundingClientRect().height) - 1 : 0) + 'px');
+  setHdr(); requestAnimationFrame(setHdr);
+  if(!window.__hdrResizeWired){ window.__hdrResizeWired = true; window.addEventListener('resize', () => { const hd = document.querySelector('header.top'); if(hd) document.documentElement.style.setProperty('--hdr-h', (Math.round(hd.getBoundingClientRect().height) - 1) + 'px'); }); }
   main.querySelectorAll('.avail-btn').forEach(b => b.addEventListener('click', () => {
     state.onlyAvailable = b.dataset.avail === 'only';
     renderCategory(main, cat);
@@ -5105,6 +5114,7 @@ function renderRows(items, showCategory){
         <div class="item-name">${escapeHtml(it.name)}</div>
         <div class="item-code mono">${escapeHtml(it.itemCode)}${showCategory ? ' · ' + escapeHtml(catLabel(it.category)) : ''}</div>
         <div class="${stockClass}">${stockText}</div>
+        ${CASH_DISCOUNT_ITEMS.has(it.itemNo) ? `<div class="disc-banner" title="Passengers paying 100% in cash get USD 10 off this item"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/></svg><b>USD 10 Discount</b><span>cash</span></div>` : ''}
       </div>
       <div class="item-price">
         <div class="amt">${fmt(it.listedPrice)}</div>
