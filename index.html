@@ -2433,14 +2433,16 @@ function getFlightInfo(){
       number: (localStorage.getItem('flight_number') || '').toUpperCase(),
       sector: (localStorage.getItem('flight_sector') || '').toUpperCase(),
       staffNo: localStorage.getItem('flight_staff_no') || '',
-      staffName: (localStorage.getItem('flight_staff_name') || '').toUpperCase()
+      staffName: (localStorage.getItem('flight_staff_name') || '').toUpperCase(),
+      aircraft: localStorage.getItem('flight_aircraft') || ''       // 'wide' | 'narrow'
     };
-  } catch(e){ return { date:'', number:'', sector:'', staffNo:'', staffName:'' }; }
+  } catch(e){ return { date:'', number:'', sector:'', staffNo:'', staffName:'', aircraft:'' }; }
 }
 function setFlightDate(val){ try{ localStorage.setItem('flight_date', val); } catch(e){} }
 function setFlightNumber(val){ try{ localStorage.setItem('flight_number', val); } catch(e){} }
 function setFlightSector(val){ try{ localStorage.setItem('flight_sector', val); } catch(e){} }
 function setFlightStaffNo(val){ try{ localStorage.setItem('flight_staff_no', val); } catch(e){} }
+function setFlightAircraft(val){ try{ localStorage.setItem('flight_aircraft', val); } catch(e){} }
 function setFlightStaffName(val){ try{ localStorage.setItem('flight_staff_name', val); } catch(e){} }
 /* ---------- Crew list (per flight: staff no, first name, last name) ---------- */
 function loadCrewList(){
@@ -2515,6 +2517,7 @@ function clearFlightInfo(){
     localStorage.removeItem('flight_date');
     localStorage.removeItem('flight_number');
     localStorage.removeItem('flight_sector');
+    localStorage.removeItem('flight_aircraft');
     // CSS Staff No and CSS Name are intentionally kept — the same crew member
     // typically operates this device across multiple flights, so re-entering
     // their details every time would just be repeated busywork.
@@ -2522,7 +2525,7 @@ function clearFlightInfo(){
 }
 function flightDetailsComplete(){
   const info = getFlightInfo();
-  return !!(info.date.trim() && info.number.trim() && info.sector.trim() && info.staffNo.trim() && info.staffName.trim());
+  return !!(info.date.trim() && info.number.trim() && info.sector.trim() && info.staffNo.trim() && info.staffName.trim() && (info.aircraft === 'wide' || info.aircraft === 'narrow'));
 }
 /* ---------- Opening-stock category confirmation (each category must be
    reviewed and confirmed before the flight counts as fully open) ---------- */
@@ -2815,7 +2818,7 @@ function summarizeLog(log){
     const key = l.itemCode + '|' + l.priceLabel + '|' + staffKey + '|' + preKey;
     if(!map[key]){
       map[key] = {
-        itemCode:l.itemCode, name:l.name, priceLabel:l.priceLabel, unitPrice:l.unitPrice, qty:0, lineTotal:0,
+        itemCode:l.itemCode, itemNo:(l.itemNo !== undefined ? l.itemNo : (ITEMS.find(x => x.itemCode === l.itemCode) || {}).itemNo), name:l.name, priceLabel:l.priceLabel, unitPrice:l.unitPrice, qty:0, lineTotal:0,
         crewStaffNo: l.crewStaffNo || '', crewStaffName: l.crewStaffName || '',
         crewFirstName: l.crewFirstName, crewLastName: l.crewLastName,
         fromPreorder: !!l.fromPreorder
@@ -3637,6 +3640,14 @@ function renderStock(main){
         <label class="flight-label" for="flightStaffNameInput">CSS Name</label>
         <input type="text" id="flightStaffNameInput" class="flight-input" placeholder="e.g. J. Perera" autocapitalize="characters" value="${escapeAttr(flightInfo.staffName)}">
       </div>
+      <div class="flight-field" style="flex-basis:100%;">
+        <label class="flight-label" for="flightAircraftInput">Aircraft type</label>
+        <select id="flightAircraftInput" class="flight-input">
+          <option value=""${!flightInfo.aircraft ? ' selected' : ''}>Select…</option>
+          <option value="wide"${flightInfo.aircraft==='wide' ? ' selected' : ''}>Wide-body (commission shared by 4)</option>
+          <option value="narrow"${flightInfo.aircraft==='narrow' ? ' selected' : ''}>Narrow-body (commission shared by 2)</option>
+        </select>
+      </div>
     </div>
     <div class="crew-list-panel" id="crewListPanel">
       <div class="crew-list-head">
@@ -3662,7 +3673,7 @@ function renderStock(main){
     </div>
     <div class="stock-gate-note" id="stockGateNote" style="display:${flightDetailsReady ? 'none' : 'flex'};">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><circle cx="12" cy="16" r="0.6" fill="currentColor"/></svg>
-      Enter Date, Flight Number, Sector, CSS Staff No and CSS Name above before entering opening stock.
+      Enter Date, Flight Number, Sector, CSS Staff No, CSS Name and Aircraft type above before entering opening stock.
     </div>
     <div class="section-label" style="margin-top:20px;">Categories</div>
     <div class="stock-cat-grid">
@@ -3735,6 +3746,10 @@ function renderStock(main){
   });
   document.getElementById('flightStaffNoInput').addEventListener('input', (e) => {
     setFlightStaffNo(e.target.value);
+    updateStockGateState(main);
+  });
+  document.getElementById('flightAircraftInput').addEventListener('change', (e) => {
+    setFlightAircraft(e.target.value);
     updateStockGateState(main);
   });
   document.getElementById('flightStaffNameInput').addEventListener('input', (e) => {
@@ -4259,10 +4274,10 @@ function renderCart(main){
 /* ---------- Printable flight report ---------- */
 function computeSummaryTotals(log){
   const summary = summarizeLog(log);
-  const passengerItems = summary.filter(s => isPassengerLabel(s.priceLabel) && !s.fromPreorder).sort((a,b)=>a.name.localeCompare(b.name));
-  const crewItems = summary.filter(s => s.priceLabel === 'Crew' && !s.fromPreorder).sort((a,b)=>a.name.localeCompare(b.name));
-  const preorderPassengerItems = summary.filter(s => isPassengerLabel(s.priceLabel) && s.fromPreorder).sort((a,b)=>a.name.localeCompare(b.name));
-  const preorderCrewItems = summary.filter(s => s.priceLabel === 'Crew' && s.fromPreorder).sort((a,b)=>a.name.localeCompare(b.name));
+  const passengerItems = summary.filter(s => isPassengerLabel(s.priceLabel) && !s.fromPreorder).sort((a,b)=>(a.itemNo||0)-(b.itemNo||0) || String(a.crewStaffNo).localeCompare(String(b.crewStaffNo)));
+  const crewItems = summary.filter(s => s.priceLabel === 'Crew' && !s.fromPreorder).sort((a,b)=>(a.itemNo||0)-(b.itemNo||0) || String(a.crewStaffNo).localeCompare(String(b.crewStaffNo)));
+  const preorderPassengerItems = summary.filter(s => isPassengerLabel(s.priceLabel) && s.fromPreorder).sort((a,b)=>(a.itemNo||0)-(b.itemNo||0) || String(a.crewStaffNo).localeCompare(String(b.crewStaffNo)));
+  const preorderCrewItems = summary.filter(s => s.priceLabel === 'Crew' && s.fromPreorder).sort((a,b)=>(a.itemNo||0)-(b.itemNo||0) || String(a.crewStaffNo).localeCompare(String(b.crewStaffNo)));
   const passengerTotal = passengerItems.reduce((s,i)=>s+i.lineTotal,0);
   const crewTotal = crewItems.reduce((s,i)=>s+i.lineTotal,0);
   const preorderPassengerTotal = preorderPassengerItems.reduce((s,i)=>s+i.lineTotal,0);
@@ -4276,11 +4291,12 @@ function computeSummaryTotals(log){
 
 function summarizePayments(payments){
   let cardUSD = 0, voucherUSD = 0;
+  const cardTxns = [];
   const cashByCurrency = {};
   (payments || []).forEach(p => {
     (p.lines || []).forEach(l => {
       if(l.method === 'card'){
-        cardUSD += l.amountUSD;
+        cardUSD += l.amountUSD; cardTxns.push(l.amountUSD);
       } else if(l.method === 'voucher'){
         voucherUSD += l.amountUSD;
       } else if(l.method === 'cash'){
@@ -4292,7 +4308,7 @@ function summarizePayments(payments){
     });
   });
   const cashUSD = Object.values(cashByCurrency).reduce((s,c) => s + c.usd, 0);
-  return { cardUSD, voucherUSD, cashByCurrency, cashUSD, totalUSD: cardUSD + voucherUSD + cashUSD };
+  return { cardUSD, cardTxns, voucherUSD, cashByCurrency, cashUSD, totalUSD: cardUSD + voucherUSD + cashUSD };
 }
 
 function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
@@ -4301,60 +4317,119 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
     passengerTotal, crewTotal, preorderPassengerTotal, preorderCrewTotal, grandTotal
   } = computeSummaryTotals(log);
   const paySummary = summarizePayments(payments);
+  const money2 = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  const no2 = (n) => (n === undefined || n === null || n === '') ? '—' : String(n).padStart(2,'0');
+
+  // ---- Crew commission (passenger sales only: normal + pre-order) ----
   const incentiveEligibleUSD = passengerTotal + preorderPassengerTotal;
   const incentiveRate = 0.05;
   const incentiveUSD = incentiveEligibleUSD * incentiveRate;
   const incentiveLKRRate = (CONVERSION_RATES && CONVERSION_RATES.incentiveRateLKR) || 0;
   const incentiveLKR = incentiveUSD * incentiveLKRRate;
+  const divisor = meta.aircraft === 'wide' ? 4 : (meta.aircraft === 'narrow' ? 2 : 0);
+  const aircraftLabel = meta.aircraft === 'wide' ? 'Wide-body' : (meta.aircraft === 'narrow' ? 'Narrow-body' : 'Not recorded');
 
   function salesRows(items){
-    if(items.length === 0) return '<tr><td colspan="5" class="rpt-empty">No items in this section.</td></tr>';
+    if(items.length === 0) return '<tr><td colspan="6" class="rpt-empty">No items in this section.</td></tr>';
     return items.map(i => `
       <tr>
+        <td>${no2(i.itemNo)}</td>
         <td>${escapeHtml(i.name)}</td>
-        <td>${escapeHtml(i.itemCode)} · ${escapeHtml(displayPriceLabel(i.priceLabel))}</td>
+        <td>${escapeHtml(displayPriceLabel(i.priceLabel))}</td>
         <td class="num">${i.qty}</td>
         <td class="num">${fmt(i.unitPrice)}</td>
         <td class="num">${fmt(i.lineTotal)}</td>
       </tr>`).join('');
   }
   function crewSalesRows(items){
-    if(items.length === 0) return '<tr><td colspan="8" class="rpt-empty">No items in this section.</td></tr>';
-    return items.map(i => `
+    if(items.length === 0) return '<tr><td colspan="7" class="rpt-empty">No items in this section.</td></tr>';
+    return items.map(i => {
+      const np = crewNameParts(i);
+      return `
       <tr>
+        <td>${no2(i.itemNo)}</td>
         <td>${escapeHtml(i.name)}</td>
-        <td>${escapeHtml(i.itemCode)}</td>
         <td>${escapeHtml(i.crewStaffNo || '—')}</td>
-        <td>${escapeHtml(crewNameParts(i).first || '—')}</td>
-        <td>${escapeHtml(crewNameParts(i).last || '—')}</td>
+        <td>${escapeHtml((np.first + ' ' + np.last).trim() || '—')}</td>
         <td class="num">${i.qty}</td>
         <td class="num">${fmt(i.unitPrice)}</td>
         <td class="num">${fmt(i.lineTotal)}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
   }
+  const stockRowsFn = (rows, emptyMsg) => (!rows || rows.length === 0)
+    ? `<tr><td colspan="5" class="rpt-empty">${emptyMsg}</td></tr>`
+    : rows.map(r => `
+      <tr>
+        <td>${no2(r.itemNo)}</td>
+        <td>${escapeHtml(r.name)}</td>
+        <td class="num">${r.opening}</td>
+        <td class="num">${r.sold}</td>
+        <td class="num">${r.closing}</td>
+      </tr>`).join('');
+  const stockRowsHtml = stockRowsFn(stockRows, 'No stock recorded for this flight.');
+  const preorderStockRowsHtml = stockRowsFn(preorderStockRows, 'No pre-order stock recorded for this flight.');
 
-  const stockRowsHtml = stockRows.length === 0
-    ? '<tr><td colspan="6" class="rpt-empty">No stock recorded for this flight.</td></tr>'
-    : stockRows.map(r => `
-      <tr>
-        <td>${String(r.itemNo).padStart(2,'0')}</td>
-        <td>${escapeHtml(r.name)}</td>
-        <td>${escapeHtml(r.itemCode)}</td>
-        <td class="num">${r.opening}</td>
-        <td class="num">${r.sold}</td>
-        <td class="num">${r.closing}</td>
-      </tr>`).join('');
-  const preorderStockRowsHtml = !preorderStockRows || preorderStockRows.length === 0
-    ? '<tr><td colspan="6" class="rpt-empty">No pre-order stock recorded for this flight.</td></tr>'
-    : preorderStockRows.map(r => `
-      <tr>
-        <td>${String(r.itemNo).padStart(2,'0')}</td>
-        <td>${escapeHtml(r.name)}</td>
-        <td>${escapeHtml(r.itemCode)}</td>
-        <td class="num">${r.opening}</td>
-        <td class="num">${r.sold}</td>
-        <td class="num">${r.closing}</td>
-      </tr>`).join('');
+  // ---- Section 1: total sales + how it was collected ----
+  const cashCurs = Object.keys(paySummary.cashByCurrency).sort((x,y) => (x==='USD' ? -1 : y==='USD' ? 1 : x.localeCompare(y)));
+  const collectRows = [];
+  cashCurs.forEach(cur => {
+    const c = paySummary.cashByCurrency[cur];
+    const rate = c.usd > 0 ? c.foreign / c.usd : 0;
+    collectRows.push(`<tr><td>Cash — ${escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? fmt(c.foreign) : money2(c.foreign) + ' ' + escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? '—' : 'USD 1 = ' + rate.toLocaleString('en-US',{maximumFractionDigits:4}) + ' ' + escapeHtml(cur)}</td><td class="num">${money2(c.usd)}</td></tr>`);
+  });
+  paySummary.cardTxns.forEach((amt, idx) => {
+    collectRows.push(`<tr><td>Credit card — transaction ${idx+1}</td><td class="num">${money2(amt)} USD</td><td class="num">—</td><td class="num">${money2(amt)}</td></tr>`);
+  });
+  if(paySummary.cardTxns.length > 1){
+    collectRows.push(`<tr class="rpt-subtotal-row"><td colspan="3">Credit card total (${paySummary.cardTxns.length} transactions)</td><td class="num">${money2(paySummary.cardUSD)}</td></tr>`);
+  }
+  if(paySummary.voucherUSD > 0){
+    collectRows.push(`<tr><td>Onboard vouchers</td><td class="num">${money2(paySummary.voucherUSD)} USD</td><td class="num">—</td><td class="num">${money2(paySummary.voucherUSD)}</td></tr>`);
+  }
+  const diff = grandTotal - paySummary.totalUSD;
+  const section1 = `
+      <div class="rpt-section-title">1. Total Sales &amp; Collections</div>
+      <div class="rpt-grand-total"><span>Total sales (USD)</span><span>${fmt(grandTotal)}</span></div>
+      <table class="rpt-table">
+        <tr><th>Collected as</th><th class="num">Amount</th><th class="num">Rate</th><th class="num">USD equivalent</th></tr>
+        ${collectRows.length ? collectRows.join('') : '<tr><td colspan="4" class="rpt-empty">No payments recorded for this flight.</td></tr>'}
+        <tr class="rpt-subtotal-row"><td colspan="3">Total collected (USD)</td><td class="num">${money2(paySummary.totalUSD)}</td></tr>
+        ${Math.abs(diff) >= 0.5 ? `<tr><td colspan="3">Difference to total sales</td><td class="num">${money2(diff)}</td></tr>` : ''}
+      </table>`;
+
+  // ---- Section 2: passengers vs staff ----
+  const paxTotalAll = passengerTotal + preorderPassengerTotal;
+  const staffTotalAll = crewTotal + preorderCrewTotal;
+  const section2 = `
+      <div class="rpt-section-title">2. Passenger Sales &amp; Staff Sales</div>
+      <table class="rpt-table">
+        <tr><th>Sales</th><th class="num">USD</th></tr>
+        <tr><td>Normal sales to passengers</td><td class="num">${fmt(passengerTotal)}</td></tr>
+        <tr><td>Pre-order sales to passengers</td><td class="num">${fmt(preorderPassengerTotal)}</td></tr>
+        <tr class="rpt-subtotal-row"><td>Total passenger sales</td><td class="num">${fmt(paxTotalAll)}</td></tr>
+        <tr><td>Normal sales to staff</td><td class="num">${fmt(crewTotal)}</td></tr>
+        <tr><td>Pre-order sales to staff</td><td class="num">${fmt(preorderCrewTotal)}</td></tr>
+        <tr class="rpt-subtotal-row"><td>Total staff sales</td><td class="num">${fmt(staffTotalAll)}</td></tr>
+      </table>`;
+
+  // ---- Section 3: commission ----
+  const perUSD = divisor ? incentiveUSD / divisor : 0;
+  const perLKR = divisor ? incentiveLKR / divisor : 0;
+  const section3 = `
+      <div class="rpt-section-title">3. Crew Commission</div>
+      <table class="rpt-meta">
+        <tr><td class="rpt-label">Commission-eligible sales (total passenger sales)</td><td>${fmt(incentiveEligibleUSD)}</td></tr>
+        <tr><td class="rpt-label">Commission rate</td><td>${(incentiveRate*100).toFixed(0)}%</td></tr>
+        <tr><td class="rpt-label">Total commission (USD)</td><td>${money2(incentiveUSD)}</td></tr>
+        <tr><td class="rpt-label">Conversion rate</td><td>USD 1 = LKR ${incentiveLKRRate.toFixed(2)}</td></tr>
+        <tr><td class="rpt-label">Total commission (LKR)</td><td>LKR ${money2(incentiveLKR)}</td></tr>
+        <tr><td class="rpt-label">Aircraft type</td><td>${aircraftLabel}${divisor ? ' — shared by ' + divisor : ''}</td></tr>
+        ${divisor
+          ? `<tr><td class="rpt-label"><b>Commission per person (USD)</b></td><td><b>${money2(perUSD)}</b></td></tr>
+             <tr><td class="rpt-label"><b>Commission per person (LKR)</b></td><td><b>LKR ${money2(perLKR)}</b></td></tr>`
+          : '<tr><td class="rpt-label">Commission per person</td><td>Aircraft type was not recorded for this flight</td></tr>'}
+      </table>`;
 
   const now = new Date();
   return `
@@ -4371,74 +4446,51 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
         <tr><td class="rpt-label">Report generated</td><td>${now.toLocaleString()}</td></tr>
       </table>
 
-      <div class="rpt-section-title">Normal Sales to Passengers</div>
+      ${section1}
+      ${section2}
+      ${section3}
+
+      <div class="rpt-section-title">4. Normal Sales to Passengers</div>
       <table class="rpt-table">
-        <tr><th>Item</th><th>Code / Tier</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
+        <tr><th>No.</th><th>Item</th><th>Tier</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
         ${salesRows(passengerItems)}
-        <tr class="rpt-subtotal-row"><td colspan="4">Subtotal</td><td class="num">${fmt(passengerTotal)}</td></tr>
+        <tr class="rpt-subtotal-row"><td colspan="5">Subtotal</td><td class="num">${fmt(passengerTotal)}</td></tr>
       </table>
 
-      <div class="rpt-section-title">Normal Sales to Staff</div>
+      <div class="rpt-section-title">5. Pre-order Sales to Passengers</div>
       <table class="rpt-table">
-        <tr><th>Item</th><th>Code</th><th>Staff No</th><th>First Name</th><th>Last Name</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
-        ${crewSalesRows(crewItems)}
-        <tr class="rpt-subtotal-row"><td colspan="5">Subtotal</td><td class="num">${fmt(crewTotal)}</td></tr>
-      </table>
-
-      <div class="rpt-section-title">Pre-order to Passengers</div>
-      <table class="rpt-table">
-        <tr><th>Item</th><th>Code / Tier</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
+        <tr><th>No.</th><th>Item</th><th>Tier</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
         ${salesRows(preorderPassengerItems)}
-        <tr class="rpt-subtotal-row"><td colspan="4">Subtotal</td><td class="num">${fmt(preorderPassengerTotal)}</td></tr>
+        <tr class="rpt-subtotal-row"><td colspan="5">Subtotal</td><td class="num">${fmt(preorderPassengerTotal)}</td></tr>
       </table>
 
-      <div class="rpt-section-title">Pre-orders to Staff</div>
+      <div class="rpt-section-title">6. Normal Sales to Staff</div>
       <table class="rpt-table">
-        <tr><th>Item</th><th>Code</th><th>Staff No</th><th>First Name</th><th>Last Name</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
+        <tr><th>No.</th><th>Item</th><th>Staff No</th><th>Staff Name</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
+        ${crewSalesRows(crewItems)}
+        <tr class="rpt-subtotal-row"><td colspan="6">Subtotal</td><td class="num">${fmt(crewTotal)}</td></tr>
+      </table>
+
+      <div class="rpt-section-title">7. Pre-order Sales to Staff</div>
+      <table class="rpt-table">
+        <tr><th>No.</th><th>Item</th><th>Staff No</th><th>Staff Name</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Total</th></tr>
         ${crewSalesRows(preorderCrewItems)}
-        <tr class="rpt-subtotal-row"><td colspan="5">Subtotal</td><td class="num">${fmt(preorderCrewTotal)}</td></tr>
+        <tr class="rpt-subtotal-row"><td colspan="6">Subtotal</td><td class="num">${fmt(preorderCrewTotal)}</td></tr>
       </table>
 
-      <div class="rpt-grand-total"><span>Grand Total</span><span>${fmt(grandTotal)}</span></div>
-
-      <div class="rpt-section-title">Payment Summary</div>
+      <div class="rpt-section-title">8. Normal Stock Reconciliation</div>
       <table class="rpt-table">
-        <tr><th>Method</th><th class="num">Amount</th></tr>
-        ${paySummary.totalUSD === 0
-          ? '<tr><td colspan="2" class="rpt-empty">No payments recorded for this flight.</td></tr>'
-          : `
-            ${paySummary.cardUSD > 0 ? `<tr><td>Credit Card</td><td class="num">${fmt(paySummary.cardUSD)}</td></tr>` : ''}
-            ${paySummary.voucherUSD > 0 ? `<tr><td>Onboard Vouchers</td><td class="num">${fmt(paySummary.voucherUSD)}</td></tr>` : ''}
-            ${Object.keys(paySummary.cashByCurrency).sort().map(cur => {
-              const c = paySummary.cashByCurrency[cur];
-              return `<tr><td>Cash — ${escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? fmt(c.foreign) : `${c.foreign.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} ${escapeHtml(cur)} (${fmt(c.usd)})`}</td></tr>`;
-            }).join('')}
-          `
-        }
-        <tr class="rpt-subtotal-row"><td>Total Collected</td><td class="num">${fmt(paySummary.totalUSD)}</td></tr>
-      </table>
-
-      <div class="rpt-section-title">Normal Stock Reconciliation</div>
-      <table class="rpt-table">
-        <tr><th>No.</th><th>Item</th><th>Code</th><th class="num">Opening</th><th class="num">Sold</th><th class="num">Closing</th></tr>
+        <tr><th>No.</th><th>Item</th><th class="num">Opening</th><th class="num">Sold</th><th class="num">Closing</th></tr>
         ${stockRowsHtml}
       </table>
 
-      <div class="rpt-section-title">Pre-Order Stock Reconciliation</div>
+      <div class="rpt-section-title">9. Pre-Order Stock Reconciliation</div>
       <table class="rpt-table">
-        <tr><th>No.</th><th>Item</th><th>Code</th><th class="num">Opening</th><th class="num">Sold</th><th class="num">Balance</th></tr>
+        <tr><th>No.</th><th>Item</th><th class="num">Opening</th><th class="num">Sold</th><th class="num">Balance</th></tr>
         ${preorderStockRowsHtml}
       </table>
 
-      <div class="rpt-section-title">Crew Incentive Calculation</div>
-      <table class="rpt-meta">
-        <tr><td class="rpt-label">Eligible sales (Passengers — Normal + Pre-order)</td><td>${fmt(incentiveEligibleUSD)}</td></tr>
-        <tr><td class="rpt-label">Incentive rate</td><td>5%</td></tr>
-        <tr><td class="rpt-label">Incentive amount (USD)</td><td>${fmt(incentiveUSD)}</td></tr>
-        <tr><td class="rpt-label">Conversion rate</td><td>USD 1 = LKR ${incentiveLKRRate.toFixed(2)}</td></tr>
-        <tr><td class="rpt-label">Incentive amount (LKR)</td><td>LKR ${incentiveLKR.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td></tr>
-      </table>
-      <div class="rpt-footer">Staff sales (Normal and Pre-order) are excluded from incentive calculation. Generated by the Serendib Treasures inflight catalog app.</div>
+      <div class="rpt-footer">Staff sales (Normal and Pre-order) are excluded from the crew commission. Generated by the Serendib Treasures inflight catalog app.</div>
     </div>
   `;
 }
@@ -4788,7 +4840,7 @@ function renderSessionSummary(main){
 
   document.getElementById('downloadReportBtn')?.addEventListener('click', () => {
     downloadFlightReport(
-      { flightNumber: flightInfo.number, flightDate: flightInfo.date, sector: flightInfo.sector, staffNo: flightInfo.staffNo, staffName: flightInfo.staffName },
+      { flightNumber: flightInfo.number, flightDate: flightInfo.date, sector: flightInfo.sector, staffNo: flightInfo.staffNo, staffName: flightInfo.staffName, aircraft: flightInfo.aircraft },
       log,
       buildStockReportRows(log),
       loadPaymentsLog(),
@@ -4803,7 +4855,7 @@ function renderSessionSummary(main){
         const archived = {
           id: Date.now(), closedAt: Date.now(),
           flightDate: flightInfo.date, flightNumber: flightInfo.number,
-          sector: flightInfo.sector, staffNo: flightInfo.staffNo, staffName: flightInfo.staffName,
+          sector: flightInfo.sector, staffNo: flightInfo.staffNo, staffName: flightInfo.staffName, aircraft: flightInfo.aircraft,
           lines: log, passengerTotal, crewTotal, grandTotal,
           stockReport: buildStockReportRows(log),
           preorderStockReport: buildPreorderStockReportRows(log),
@@ -4869,7 +4921,7 @@ function renderFlightHistory(main){
 
       if(btn.dataset.action === 'report'){
         downloadFlightReport(
-          { flightNumber: archived.flightNumber, flightDate: archived.flightDate, closedAt: archived.closedAt, sector: archived.sector, staffNo: archived.staffNo, staffName: archived.staffName },
+          { flightNumber: archived.flightNumber, flightDate: archived.flightDate, closedAt: archived.closedAt, sector: archived.sector, staffNo: archived.staffNo, staffName: archived.staffName, aircraft: archived.aircraft },
           archived.lines,
           archived.stockReport || [],
           archived.payments || [],
