@@ -1017,6 +1017,15 @@
 .disc-banner b{font-weight:800;text-transform:uppercase;letter-spacing:.03em}
 .disc-banner span{font-size:.68rem;font-weight:700;background:rgba(255,255,255,.22);padding:1px 6px;border-radius:999px;text-transform:uppercase}
 @media print{.disc-banner{display:none}}
+
+.screen-rpt{margin-top:14px}
+.screen-rpt .rpt-section-title{font-weight:800;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin:20px 0 6px;padding-bottom:4px;border-bottom:1px dashed var(--hairline)}
+.screen-rpt .rpt-table,.screen-rpt .rpt-meta{width:100%;border-collapse:collapse;font-size:.88rem}
+.screen-rpt .rpt-table th{text-align:left;font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:6px 4px;border-bottom:1.5px solid var(--ink)}
+.screen-rpt .rpt-table td,.screen-rpt .rpt-meta td{padding:8px 4px;border-bottom:1px solid var(--hairline);vertical-align:top}
+.screen-rpt .num,.screen-rpt th.num{text-align:right;font-variant-numeric:tabular-nums}
+.screen-rpt .rpt-subtotal-row td{font-weight:800;border-top:1.5px solid var(--ink)}
+.screen-rpt .rpt-label{color:var(--ink-soft);width:48%}
 </style>
 </head>
 <body>
@@ -4320,15 +4329,13 @@ function summarizePayments(payments){
   return { cardUSD, cardTxns, voucherUSD, cashByCurrency, cashUSD, totalUSD: cardUSD + voucherUSD + cashUSD };
 }
 
-function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
+/* Sections 1-3 (collections, passenger vs staff sales, crew commission) — shared by the printed report and the on-screen summary */
+function summarySectionsHtml(meta, log, payments){
   const {
-    passengerItems, crewItems, preorderPassengerItems, preorderCrewItems,
     passengerTotal, crewTotal, preorderPassengerTotal, preorderCrewTotal, grandTotal
   } = computeSummaryTotals(log);
   const paySummary = summarizePayments(payments);
   const money2 = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
-  const no2 = (n) => (n === undefined || n === null || n === '') ? '—' : String(n).padStart(2,'0');
-
   // ---- Crew commission (passenger sales only: normal + pre-order) ----
   const incentiveEligibleUSD = passengerTotal + preorderPassengerTotal;
   const incentiveRate = 0.05;
@@ -4337,6 +4344,69 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
   const incentiveLKR = incentiveUSD * incentiveLKRRate;
   const divisor = meta.aircraft === 'wide' ? 4 : (meta.aircraft === 'narrow' ? 2 : 0);
   const aircraftLabel = meta.aircraft === 'wide' ? 'Wide-body' : (meta.aircraft === 'narrow' ? 'Narrow-body' : 'Not recorded');
+
+  // ---- Section 1: total sales + how it was collected ----
+  const cashCurs = Object.keys(paySummary.cashByCurrency).sort((x,y) => (x==='USD' ? -1 : y==='USD' ? 1 : x.localeCompare(y)));
+  const collectRows = [];
+  cashCurs.forEach(cur => {
+    const c = paySummary.cashByCurrency[cur];
+    const rate = c.usd > 0 ? c.foreign / c.usd : 0;
+    collectRows.push(`<tr><td>Cash — ${escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? fmt(c.foreign) : money2(c.foreign) + ' ' + escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? '—' : 'USD 1 = ' + rate.toLocaleString('en-US',{maximumFractionDigits:4}) + ' ' + escapeHtml(cur)}</td><td class="num">${money2(c.usd)}</td></tr>`);
+  });
+  if(paySummary.cardTxns.length){
+    collectRows.push(`<tr><td colspan="3">CC Sales (USD) — ${paySummary.cardTxns.map((a,k) => (a < 0 ? ' − $' + money2(-a) : (k ? ' + ' : '') + '$' + money2(a))).join('').trim()}</td><td class="num">$${money2(paySummary.cardUSD)}</td></tr>`);
+  }
+  if(paySummary.voucherUSD > 0){
+    collectRows.push(`<tr><td>Onboard vouchers</td><td class="num">${money2(paySummary.voucherUSD)} USD</td><td class="num">—</td><td class="num">${money2(paySummary.voucherUSD)}</td></tr>`);
+  }
+  const section1 = `
+      <div class="rpt-section-title">1. Total Sales &amp; Collections</div>
+      <table class="rpt-table">
+        <tr><th>Collected as</th><th class="num">Amount</th><th class="num">Rate</th><th class="num">USD equivalent</th></tr>
+        ${collectRows.length ? collectRows.join('') : '<tr><td colspan="4" class="rpt-empty">No payments recorded for this flight.</td></tr>'}
+        <tr class="rpt-subtotal-row"><td colspan="3">Total Sales (USD) — cash + CC${paySummary.voucherUSD > 0 ? ' + vouchers' : ''}</td><td class="num">$${money2(paySummary.totalUSD)}</td></tr>
+      </table>`;
+
+  // ---- Section 2: passengers vs staff ----
+  const paxTotalAll = passengerTotal + preorderPassengerTotal;
+  const staffTotalAll = crewTotal + preorderCrewTotal;
+  const section2 = `
+      <div class="rpt-section-title">2. Passenger Sales &amp; Staff Sales</div>
+      <table class="rpt-table">
+        <tr><th>Sales</th><th class="num">USD</th></tr>
+        <tr><td>Normal sales to passengers</td><td class="num">${fmt(passengerTotal)}</td></tr>
+        <tr><td>Pre-order sales to passengers</td><td class="num">${fmt(preorderPassengerTotal)}</td></tr>
+        <tr class="rpt-subtotal-row"><td>Total passenger sales</td><td class="num">${fmt(paxTotalAll)}</td></tr>
+        <tr><td>Normal sales to staff</td><td class="num">${fmt(crewTotal)}</td></tr>
+        <tr><td>Pre-order sales to staff</td><td class="num">${fmt(preorderCrewTotal)}</td></tr>
+        <tr class="rpt-subtotal-row"><td>Total staff sales</td><td class="num">${fmt(staffTotalAll)}</td></tr>
+      </table>`;
+
+  // ---- Section 3: commission ----
+  const perUSD = divisor ? incentiveUSD / divisor : 0;
+  const perLKR = divisor ? incentiveLKR / divisor : 0;
+  const section3 = `
+      <div class="rpt-section-title">3. Crew Commission</div>
+      <table class="rpt-meta">
+        <tr><td class="rpt-label">Commission-eligible sales (total passenger sales)</td><td>${fmt(incentiveEligibleUSD)}</td></tr>
+        <tr><td class="rpt-label">Commission rate</td><td>${(incentiveRate*100).toFixed(0)}%</td></tr>
+        <tr><td class="rpt-label">Total commission</td><td>USD $${money2(incentiveUSD)} &nbsp;|&nbsp; LKR ${money2(incentiveLKR)} <span style="color:#666">(USD 1 = LKR ${incentiveLKRRate.toFixed(2)})</span></td></tr>
+        ${divisor
+          ? `<tr><td class="rpt-label"><b>Commission Per Person</b></td><td><b>LKR ${money2(perLKR)}</b> <span style="color:#666">(USD $${money2(perUSD)} · ${meta.aircraft === 'wide' ? 'Wide Body' : 'Narrow Body'} · shared by ${divisor})</span></td></tr>`
+          : '<tr><td class="rpt-label">Commission Per Person</td><td>Aircraft type was not recorded for this flight</td></tr>'}
+      </table>`;
+
+  return section1 + section2 + section3;
+}
+
+function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
+  const {
+    passengerItems, crewItems, preorderPassengerItems, preorderCrewItems,
+    passengerTotal, crewTotal, preorderPassengerTotal, preorderCrewTotal, grandTotal
+  } = computeSummaryTotals(log);
+  const paySummary = summarizePayments(payments);
+  const money2 = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  const no2 = (n) => (n === undefined || n === null || n === '') ? '—' : String(n).padStart(2,'0');
 
   function salesRows(items){
     if(items.length === 0) return '<tr><td colspan="6" class="rpt-empty">No items in this section.</td></tr>';
@@ -4379,57 +4449,6 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
   const stockRowsHtml = stockRowsFn(stockRows, 'No stock recorded for this flight.');
   const preorderStockRowsHtml = stockRowsFn(preorderStockRows, 'No pre-order stock recorded for this flight.');
 
-  // ---- Section 1: total sales + how it was collected ----
-  const cashCurs = Object.keys(paySummary.cashByCurrency).sort((x,y) => (x==='USD' ? -1 : y==='USD' ? 1 : x.localeCompare(y)));
-  const collectRows = [];
-  cashCurs.forEach(cur => {
-    const c = paySummary.cashByCurrency[cur];
-    const rate = c.usd > 0 ? c.foreign / c.usd : 0;
-    collectRows.push(`<tr><td>Cash — ${escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? fmt(c.foreign) : money2(c.foreign) + ' ' + escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? '—' : 'USD 1 = ' + rate.toLocaleString('en-US',{maximumFractionDigits:4}) + ' ' + escapeHtml(cur)}</td><td class="num">${money2(c.usd)}</td></tr>`);
-  });
-  if(paySummary.cardTxns.length){
-    collectRows.push(`<tr><td colspan="3">CC Sales (USD) — ${paySummary.cardTxns.map(a => '$' + money2(a)).join(' + ')}</td><td class="num">$${money2(paySummary.cardUSD)}</td></tr>`);
-  }
-  if(paySummary.voucherUSD > 0){
-    collectRows.push(`<tr><td>Onboard vouchers</td><td class="num">${money2(paySummary.voucherUSD)} USD</td><td class="num">—</td><td class="num">${money2(paySummary.voucherUSD)}</td></tr>`);
-  }
-  const section1 = `
-      <div class="rpt-section-title">1. Total Sales &amp; Collections</div>
-      <table class="rpt-table">
-        <tr><th>Collected as</th><th class="num">Amount</th><th class="num">Rate</th><th class="num">USD equivalent</th></tr>
-        ${collectRows.length ? collectRows.join('') : '<tr><td colspan="4" class="rpt-empty">No payments recorded for this flight.</td></tr>'}
-        <tr class="rpt-subtotal-row"><td colspan="3">Total Sales (USD) — cash + CC${paySummary.voucherUSD > 0 ? ' + vouchers' : ''}</td><td class="num">$${money2(paySummary.totalUSD)}</td></tr>
-      </table>`;
-
-  // ---- Section 2: passengers vs staff ----
-  const paxTotalAll = passengerTotal + preorderPassengerTotal;
-  const staffTotalAll = crewTotal + preorderCrewTotal;
-  const section2 = `
-      <div class="rpt-section-title">2. Passenger Sales &amp; Staff Sales</div>
-      <table class="rpt-table">
-        <tr><th>Sales</th><th class="num">USD</th></tr>
-        <tr><td>Normal sales to passengers</td><td class="num">${fmt(passengerTotal)}</td></tr>
-        <tr><td>Pre-order sales to passengers</td><td class="num">${fmt(preorderPassengerTotal)}</td></tr>
-        <tr class="rpt-subtotal-row"><td>Total passenger sales</td><td class="num">${fmt(paxTotalAll)}</td></tr>
-        <tr><td>Normal sales to staff</td><td class="num">${fmt(crewTotal)}</td></tr>
-        <tr><td>Pre-order sales to staff</td><td class="num">${fmt(preorderCrewTotal)}</td></tr>
-        <tr class="rpt-subtotal-row"><td>Total staff sales</td><td class="num">${fmt(staffTotalAll)}</td></tr>
-      </table>`;
-
-  // ---- Section 3: commission ----
-  const perUSD = divisor ? incentiveUSD / divisor : 0;
-  const perLKR = divisor ? incentiveLKR / divisor : 0;
-  const section3 = `
-      <div class="rpt-section-title">3. Crew Commission</div>
-      <table class="rpt-meta">
-        <tr><td class="rpt-label">Commission-eligible sales (total passenger sales)</td><td>${fmt(incentiveEligibleUSD)}</td></tr>
-        <tr><td class="rpt-label">Commission rate</td><td>${(incentiveRate*100).toFixed(0)}%</td></tr>
-        <tr><td class="rpt-label">Total commission</td><td>USD $${money2(incentiveUSD)} &nbsp;|&nbsp; LKR ${money2(incentiveLKR)} <span style="color:#666">(USD 1 = LKR ${incentiveLKRRate.toFixed(2)})</span></td></tr>
-        ${divisor
-          ? `<tr><td class="rpt-label"><b>Commission Per Person</b></td><td><b>LKR ${money2(perLKR)}</b> <span style="color:#666">(USD $${money2(perUSD)} · ${meta.aircraft === 'wide' ? 'Wide Body' : 'Narrow Body'} · shared by ${divisor})</span></td></tr>`
-          : '<tr><td class="rpt-label">Commission Per Person</td><td>Aircraft type was not recorded for this flight</td></tr>'}
-      </table>`;
-
   const now = new Date();
   return `
     <div class="rpt-page">
@@ -4445,9 +4464,7 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
         <tr><td class="rpt-label">Report generated</td><td>${now.toLocaleString()}</td></tr>
       </table>
 
-      ${section1}
-      ${section2}
-      ${section3}
+      ${summarySectionsHtml(meta, log, payments)}
 
       <div class="rpt-section-title">4. Normal Sales to Passengers</div>
       <table class="rpt-table">
@@ -4497,7 +4514,15 @@ function buildReportHtml(meta, log, stockRows, payments, preorderStockRows){
 function downloadFlightReport(meta, log, stockRows, payments, preorderStockRows){
   const area = document.getElementById('reportPrintArea');
   area.innerHTML = buildReportHtml(meta, log, stockRows, payments, preorderStockRows);
+  // The browser's "Save as PDF" suggests the page title as the file name, e.g. UL503_CMB-LHR_2026-11-14_Flight-Sales-Report
+  const clean = (s) => String(s || '').trim().replace(/[\\/:*?"<>|\s]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const parts = [clean(meta.flightNumber), clean(meta.sector), clean(meta.flightDate)].filter(Boolean);
+  const prevTitle = document.title;
+  document.title = (parts.length ? parts.join('_') + '_' : '') + 'Flight-Sales-Report';
+  const restore = () => { document.title = prevTitle; window.removeEventListener('afterprint', restore); };
+  window.addEventListener('afterprint', restore);
   window.print();
+  setTimeout(restore, 60000);
 }
 
 const PAYMENT_METHOD_LABELS = { card: 'Credit Card', voucher: 'Onboard Vouchers', cash: 'Cash', mix: 'Mix' };
@@ -4684,11 +4709,12 @@ function refundGroupKey(i){
   const preKey = i.fromPreorder ? 'pre' : 'reg';
   return i.itemCode + '|' + i.priceLabel + '|' + staffKey + '|' + preKey;
 }
-function refundSaleGroup(itemCode, priceLabel, crewStaffNo, crewStaffName, fromPreorder, refundQty){
+function refundSaleGroup(itemCode, priceLabel, crewStaffNo, crewStaffName, fromPreorder, refundQty, refundMethod){
   const log = loadSalesLog();
   const staffKey = priceLabel === 'Crew' ? (crewStaffNo||'') + '|' + (crewStaffName||'') : '';
   const preKey = fromPreorder ? 'pre' : 'reg';
   let remaining = refundQty;
+  let refundValue = 0;
   const newLog = [];
   log.forEach(l => {
     const lStaffKey = l.priceLabel === 'Crew' ? (l.crewStaffNo||'') + '|' + (l.crewStaffName||'') : '';
@@ -4697,9 +4723,11 @@ function refundSaleGroup(itemCode, priceLabel, crewStaffNo, crewStaffName, fromP
     if(matches && remaining > 0){
       if(l.qty <= remaining){
         remaining -= l.qty;
+        refundValue += l.qty * l.unitPrice;
         return; // this line fully refunded — drop it
       } else {
         const newQty = l.qty - remaining;
+        refundValue += remaining * l.unitPrice;
         newLog.push(Object.assign({}, l, { qty: newQty, lineTotal: newQty * l.unitPrice }));
         remaining = 0;
         return;
@@ -4708,6 +4736,14 @@ function refundSaleGroup(itemCode, priceLabel, crewStaffNo, crewStaffName, fromP
     newLog.push(l);
   });
   saveSalesLog(newLog);
+  // Money handed back is recorded as a negative payment, so the report's collections stay equal to the (reduced) sales
+  if(refundValue > 0){
+    const m = refundMethod === 'card' ? 'card' : 'cash';
+    recordPayment({
+      timestamp: Date.now(), total: -refundValue, method: m, refund: true,
+      lines: [{ method: m, currency: 'USD', amountForeign: -refundValue, amountUSD: -refundValue }]
+    });
+  }
   if(fromPreorder){
     addPreorderStock(itemCode, refundQty);
   } else {
@@ -4733,8 +4769,9 @@ function renderSessionSummary(main){
       return `
       <div class="session-row">
         <div class="session-row-mid">
+          <div class="item-no">${i.itemNo !== undefined ? String(i.itemNo).padStart(2,'0') : '—'}</div>
           <div class="item-name">${escapeHtml(i.name)}</div>
-          <div class="item-code mono">${escapeHtml(i.itemCode)} · ${fmt(i.unitPrice)} × ${i.qty}${i.priceLabel === 'Crew' ? ` · ${escapeHtml(i.crewStaffNo || '—')} ${escapeHtml((crewNameParts(i).first + ' ' + crewNameParts(i).last).trim() || '—')}` : ''}</div>
+          <div class="item-code mono">${fmt(i.unitPrice)} × ${i.qty}${i.priceLabel === 'Crew' ? ` · ${escapeHtml(i.crewStaffNo || '—')} · ${escapeHtml((crewNameParts(i).first + ' ' + crewNameParts(i).last).trim() || '—')}` : ''}</div>
           <span class="session-tag">${escapeHtml(displayPriceLabel(i.priceLabel))}</span>
         </div>
         <div class="item-price">
@@ -4742,6 +4779,7 @@ function renderSessionSummary(main){
           ${expanded ? `
             <div class="refund-form">
               <input type="number" class="flight-input refund-qty-input" min="1" max="${i.qty}" step="1" value="${i.qty}">
+              <select class="flight-input refund-method" aria-label="Refunded by"><option value="cash">Refund in cash (USD)</option><option value="card">Refund to card</option></select>
               <button class="refund-confirm-btn" type="button"
                 data-code="${escapeAttr(i.itemCode)}" data-label="${escapeAttr(i.priceLabel)}"
                 data-staffno="${escapeAttr(i.crewStaffNo||'')}" data-staffname="${escapeAttr(i.crewStaffName||'')}"
@@ -4760,29 +4798,29 @@ function renderSessionSummary(main){
   `;
 
   const flightOpenNow = isFlightOpen();
+  const liveMeta = { flightNumber: flightInfo.number, flightDate: flightInfo.date, sector: flightInfo.sector, staffNo: flightInfo.staffNo, staffName: flightInfo.staffName, aircraft: flightInfo.aircraft };
   html += `
-    <div class="section-label" style="margin-top:20px;">Normal Sales to Passengers</div>
+    <div class="screen-rpt">${summarySectionsHtml(liveMeta, log, loadPaymentsLog())}</div>
+
+    <div class="section-label" style="margin-top:20px;">4. Normal Sales to Passengers</div>
     ${sectionRows(passengerItems)}
     <div class="session-subtotal"><span>Subtotal</span><span class="mono">${fmt(passengerTotal)}</span></div>
 
-    <div class="section-label" style="margin-top:20px;">Normal Sales to Staff</div>
-    ${sectionRows(crewItems)}
-    <div class="session-subtotal"><span>Subtotal</span><span class="mono">${fmt(crewTotal)}</span></div>
-
-    <div class="section-label" style="margin-top:20px;">Pre-order to Passengers</div>
+    <div class="section-label" style="margin-top:20px;">5. Pre-order Sales to Passengers</div>
     ${sectionRows(preorderPassengerItems)}
     <div class="session-subtotal"><span>Subtotal</span><span class="mono">${fmt(preorderPassengerTotal)}</span></div>
 
-    <div class="section-label" style="margin-top:20px;">Pre-orders to Staff</div>
+    <div class="section-label" style="margin-top:20px;">6. Normal Sales to Staff</div>
+    ${sectionRows(crewItems)}
+    <div class="session-subtotal"><span>Subtotal</span><span class="mono">${fmt(crewTotal)}</span></div>
+
+    <div class="section-label" style="margin-top:20px;">7. Pre-order Sales to Staff</div>
     ${sectionRows(preorderCrewItems)}
     <div class="session-subtotal"><span>Subtotal</span><span class="mono">${fmt(preorderCrewTotal)}</span></div>
 
     <div class="cart-footer">
       <div class="cart-total-line"><span>Grand Total</span><span class="mono">${fmt(grandTotal)}</span></div>
-      <button class="report-download-btn" id="downloadReportBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
-        Download Report (PDF)
-      </button>
+      <div class="stock-note" style="text-align:center; margin:0 0 8px;">This screen shows the live figures. The final PDF report is produced when the flight is closed (and stays available under Flight Sales History).</div>
       ${flightOpenNow
         ? `<button class="add-cart-btn" id="closeSessionBtn" type="button">Close Flight</button>`
         : `<button class="add-cart-btn" type="button" disabled>Close Flight</button>
@@ -4829,22 +4867,12 @@ function renderSessionSummary(main){
       const staffName = btn.dataset.staffname;
       const fromPreorder = btn.dataset.preorder === '1';
       showConfirm(`Refund ${qty} unit${qty===1?'':'s'}? This removes it from sales and adds it back to ${fromPreorder ? 'the pre-order balance' : 'stock'}.`, () => {
-        refundSaleGroup(itemCode, priceLabel, staffNo, staffName, fromPreorder, qty);
+        refundSaleGroup(itemCode, priceLabel, staffNo, staffName, fromPreorder, qty, (row.querySelector('.refund-method') || {}).value);
         expandedRefundKey = null;
         showToast('Refund processed — stock updated');
         renderSessionSummary(main);
       });
     });
-  });
-
-  document.getElementById('downloadReportBtn')?.addEventListener('click', () => {
-    downloadFlightReport(
-      { flightNumber: flightInfo.number, flightDate: flightInfo.date, sector: flightInfo.sector, staffNo: flightInfo.staffNo, staffName: flightInfo.staffName, aircraft: flightInfo.aircraft },
-      log,
-      buildStockReportRows(log),
-      loadPaymentsLog(),
-      buildPreorderStockReportRows(log)
-    );
   });
 
   const closeBtn = document.getElementById('closeSessionBtn');
@@ -4863,6 +4891,7 @@ function renderSessionSummary(main){
         const hist = loadSessionsHistory();
         hist.push(archived);
         saveSessionsHistory(hist);
+        const finalReport = archived;
         saveSalesLog([]);
         savePaymentsLog([]);
         resetAllStock();
@@ -4872,10 +4901,14 @@ function renderSessionSummary(main){
         preorderCartDrafts = {};
         expandedRefundKey = null;
         clearFlightInfo();
-        showToast('Flight closed — ready to open the next flight');
+        showToast('Flight closed — final report ready');
         state.view = 'home';
         window.scrollTo(0,0);
         render();
+        setTimeout(() => downloadFlightReport(
+          { flightNumber: finalReport.flightNumber, flightDate: finalReport.flightDate, closedAt: finalReport.closedAt, sector: finalReport.sector, staffNo: finalReport.staffNo, staffName: finalReport.staffName, aircraft: finalReport.aircraft },
+          finalReport.lines, finalReport.stockReport, finalReport.payments, finalReport.preorderStockReport
+        ), 400);
       });
     });
   }
