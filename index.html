@@ -1006,6 +1006,12 @@
 .crew-row-head.crew-ro{grid-template-columns:72px 1fr 1fr;padding:0 4px}
 
 .sheet-crew{margin:8px 0 4px;padding:10px;border:1px solid var(--hairline);border-radius:12px;background:var(--paper-raised)}
+
+.cart-row{position:relative}
+.cart-pick{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin-left:-6px;flex:none;cursor:pointer}
+.cart-pick input,.cart-selall input{width:22px;height:22px;accent-color:var(--ink);cursor:pointer}
+.cart-row.unticked{opacity:.55}
+.cart-selall{display:flex;align-items:center;gap:10px;min-height:44px;padding:4px 2px;font-weight:600;font-size:.95rem}
 </style>
 </head>
 <body>
@@ -2263,7 +2269,7 @@ const CASH_DISCOUNT_USD = 10;
 /* Total USD 10-per-eligible-unit cash discount available on the current cart,
    counting only passenger-priced (Listed/Special) lines for eligible items. */
 function cashDiscountUSD(){
-  return cart.reduce((s, c) => {
+  return cartSelected().reduce((s, c) => {
     if(isPassengerLabel(c.priceLabel) && CASH_DISCOUNT_ITEMS.has(c.itemNo)){
       return s + c.qty * CASH_DISCOUNT_USD;
     }
@@ -2680,7 +2686,12 @@ function removeFromCart(id){
   cart = cart.filter(c => c.id !== id);
   saveCart();
 }
+/* Lines ticked for payment in this transaction (all lines unless the user unticks some) */
+function cartSelected(){ return cart.filter(c => c.sel !== false); }
 function cartTotal(){
+  return cartSelected().reduce((s,c)=>s + c.qty * c.unitPrice, 0);
+}
+function cartAllTotal(){
   return cart.reduce((s,c)=>s + c.qty * c.unitPrice, 0);
 }
 function cartCount(){
@@ -2883,10 +2894,12 @@ function paymentLinesTotalUSD(){
 }
 function goToPayment(){
   if(cart.length === 0) return;
-  if(cartTransactionType() === 'crew'){
-    const missing = cart.some(c => !(c.crewStaffNo && c.crewStaffNo.trim()) || !(c.crewFirstName && c.crewFirstName.trim()));
+  const sel = cartSelected();
+  if(sel.length === 0){ showToast('Tick at least one item to pay for'); return; }
+  if(sel.some(c => !isPassengerLabel(c.priceLabel))){
+    const missing = sel.some(c => !(c.crewStaffNo && c.crewStaffNo.trim()) || !(c.crewFirstName && c.crewFirstName.trim()));
     if(missing){
-      showToast('Select the crew member (or enter Staff No and First Name) for every item before completing a staff sale');
+      showToast('Select the crew member (or enter Staff No and First Name) for every ticked item before completing a staff sale');
       document.querySelectorAll('.crew-staff-input, .crew-pick').forEach(inp => {
         if(!inp.value.trim() || inp.value === '__manual' && inp.classList.contains('crew-pick')) inp.classList.add('missing');
       });
@@ -2901,7 +2914,8 @@ function goToPayment(){
 }
 function finalizeSale(){
   const due = saleDueTotal(state.paymentMethod);
-  cart.forEach(c => {
+  const paying = cartSelected();
+  paying.forEach(c => {
     if(c.fromPreorder) return; // pre-order sales don't touch regular opening stock
     const stock = getStock(c.itemCode);
     setStock(c.itemCode, Math.max(0, stock - c.qty));
@@ -2911,19 +2925,20 @@ function finalizeSale(){
   // Session Summary and reports all reflect what was actually charged —
   // not just the payment-screen total.
   const saleEntries = state.paymentMethod === 'cash'
-    ? cart.map(c => (isPassengerLabel(c.priceLabel) && CASH_DISCOUNT_ITEMS.has(c.itemNo))
+    ? paying.map(c => (isPassengerLabel(c.priceLabel) && CASH_DISCOUNT_ITEMS.has(c.itemNo))
         ? { ...c, unitPrice: Math.max(0, c.unitPrice - CASH_DISCOUNT_USD) }
         : c)
-    : cart;
+    : paying;
   recordSale(saleEntries);
   recordPayment({
     timestamp: Date.now(), total: due,
     method: state.paymentMethod,
     lines: state.paymentLines
   });
-  cart = [];
+  const remaining = cart.filter(c => c.sel === false);   // unticked lines stay in the cart for another transaction
+  cart = remaining.map(c => { const k = { ...c }; delete k.sel; return k; });
   saveCart();
-  showToast(`Sale completed — ${fmt(due)}`);
+  showToast(`Sale completed — ${fmt(due)}${cart.length ? ' · ' + cart.length + ' item' + (cart.length===1?'':'s') + ' left in cart' : ''}`);
   updateCartBadge();
   state.paymentMethod = null;
   state.paymentLines = [];
@@ -4119,13 +4134,16 @@ function renderCart(main){
   }
 
   const isCrewCart = cartTransactionType() === 'crew';
+  const selN = cartSelected().length;
 
   const rowsHtml = cart.map(c => {
     const cartItem = ITEMS.find(i => i.itemCode === c.itemCode);
     const img = cartItem ? getItemImage(cartItem) : null;
     const thumbInner = img ? `<img src="${img}" alt="${escapeAttr(c.name)}">` : GENERIC_PHOTO_ICON;
+    const checked = c.sel !== false;
     return `
-    <div class="cart-row" data-id="${escapeAttr(c.id)}">
+    <div class="cart-row${checked ? '' : ' unticked'}" data-id="${escapeAttr(c.id)}">
+      <label class="cart-pick" aria-label="Include ${escapeAttr(c.name)} in this payment"><input type="checkbox" class="cart-sel" ${checked ? 'checked' : ''}></label>
       <div class="item-thumb">${thumbInner}</div>
       <div class="item-mid">
         <div class="item-name">${escapeHtml(c.name)}</div>
@@ -4148,15 +4166,23 @@ function renderCart(main){
     <div class="list-title">Cart</div>
     <div class="list-count">${cart.length} line item${cart.length===1?'':'s'} · ${cartCount()} unit${cartCount()===1?'':'s'}</div>
     ${isCrewCart ? '<div class="stock-note" style="margin:0 0 4px;">Staff sale — select the crew member buying each item before completing the sale.</div>' : ''}
+    ${cart.length > 1 ? `<label class="cart-selall"><input type="checkbox" id="cartSelAll" ${selN === cart.length ? 'checked' : ''}> <span>Select items to pay now <b>(${selN} of ${cart.length})</b></span></label>
+    <div class="stock-note" style="margin:0 0 4px;">Untick anything that isn't being paid for yet — it stays in the cart for the next transaction.</div>` : ''}
     ${rowsHtml}
     <div class="cart-footer">
-      <div class="cart-total-line"><span>Total</span><span class="mono">${fmt(cartTotal())}</span></div>
-      <button class="add-cart-btn" id="completeSaleBtn" type="button">Complete Sale</button>
+      <div class="cart-total-line"><span>${selN === cart.length ? 'Total' : 'Total to pay (' + selN + ' of ' + cart.length + ' lines)'}</span><span class="mono">${fmt(cartTotal())}</span></div>
+      <button class="add-cart-btn" id="completeSaleBtn" type="button" ${selN === 0 ? 'disabled' : ''}>${selN === cart.length ? 'Complete Sale' : 'Pay for ' + selN + ' selected'}</button>
       <button class="clear-cart-btn" id="clearCartBtn" type="button">Clear Cart</button>
     </div>
     ${floatingHomeBarHtml()}
   `;
 
+  main.querySelectorAll('.cart-sel').forEach(cb => cb.addEventListener('change', () => {
+    const entry = cart.find(c => c.id === cb.closest('.cart-row').dataset.id);
+    if(entry){ entry.sel = cb.checked; saveCart(); renderCart(main); }
+  }));
+  const selAll = document.getElementById('cartSelAll');
+  if(selAll) selAll.addEventListener('change', () => { cart.forEach(c => { c.sel = selAll.checked; }); saveCart(); renderCart(main); });
   main.querySelectorAll('.crew-pick').forEach(sel => {
     sel.addEventListener('change', () => {
       const row = sel.closest('.cart-row');
