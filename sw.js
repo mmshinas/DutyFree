@@ -1,4 +1,4 @@
-const APP_CACHE = 'serendib-catalog-v6';
+const APP_CACHE = 'serendib-catalog-v7';
 const IMAGE_CACHE = 'serendib-images-v1';
 const ASSETS = [
   'index.html', 'manifest.json',
@@ -8,7 +8,10 @@ const ASSETS = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(APP_CACHE).then((cache) => cache.addAll(ASSETS))
+    // cache:'reload' skips the browser's HTTP cache so the freshest files are stored, never a stale copy
+    caches.open(APP_CACHE).then((cache) => Promise.all(
+      ASSETS.map((a) => cache.add(new Request(a, { cache: 'reload' })).catch(() => {}))
+    ))
   );
   self.skipWaiting();
 });
@@ -54,18 +57,46 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // App shell (index.html, manifest, icons): network-first, so genuine
-  // updates (new features, price changes, etc.) always reach the device
-  // the next time it's opened online. Falls back to the cached copy when
-  // offline, which is what matters most for actual inflight use.
+  // OCR engine files (crew-list screenshot reader): cache-first, kept for offline use once fetched.
+  if(url.pathname.indexOf('/ocr/') !== -1){
+    event.respondWith(
+      caches.open(APP_CACHE).then((cache) =>
+        cache.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
+          if(response && response.ok) cache.put(event.request, response.clone());
+          return response;
+        }))
+      )
+    );
+    return;
+  }
+
+  // App shell (index.html, manifest, icons): network-first with a short timeout, so updates reach the
+  // device when online but a missing / very slow connection (typical onboard) falls straight back to
+  // the saved copy. Every successful fetch refreshes the saved copy, and page navigations (the app
+  // opened from "/", "/?x" or "index.html") always fall back to the saved index.html — so refreshing
+  // offline keeps the latest version that was loaded online.
+  const isNav = event.request.mode === 'navigate';
+  const shellFallback = () =>
+    caches.match(event.request, { ignoreSearch: true })
+      .then((r) => r || (isNav ? (caches.match('index.html').then((x) => x || caches.match('./'))) : undefined))
+      .then((r) => r || new Response('Offline — open the app once with internet so it can be saved on this device.', { status: 503, headers: { 'Content-Type': 'text/plain' } }));
+
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if(response && response.ok){
-          caches.open(APP_CACHE).then((cache) => cache.put(event.request, response.clone()));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request))
+    new Promise((resolve) => {
+      let settled = false;
+      const timer = setTimeout(() => { if(!settled){ settled = true; shellFallback().then(resolve); } }, 4000);
+      fetch(event.request, { cache: 'no-cache' })
+        .then((response) => {
+          if(response && response.ok){
+            const copy = response.clone();
+            caches.open(APP_CACHE).then((cache) => {
+              cache.put(event.request, copy.clone());
+              if(isNav) cache.put('index.html', copy.clone());
+            });
+          }
+          if(!settled){ settled = true; clearTimeout(timer); resolve(response); }
+        })
+        .catch(() => { if(!settled){ settled = true; clearTimeout(timer); shellFallback().then(resolve); } });
+    })
   );
 });

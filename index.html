@@ -5480,6 +5480,7 @@ if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js')
       .then((registration) => {
+        try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}   // ask the browser not to evict saved flight data
         warmImageCache();
         // Don't rely solely on the browser's own update-check timing —
         // ask explicitly, now and periodically, so a device that opens
