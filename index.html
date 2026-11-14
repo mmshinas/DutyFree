@@ -4351,7 +4351,7 @@ function summarySectionsHtml(meta, log, payments){
   cashCurs.forEach(cur => {
     const c = paySummary.cashByCurrency[cur];
     const rate = c.usd > 0 ? c.foreign / c.usd : 0;
-    collectRows.push(`<tr><td>Cash — ${escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? fmt(c.foreign) : money2(c.foreign) + ' ' + escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? '—' : 'USD 1 = ' + rate.toLocaleString('en-US',{maximumFractionDigits:4}) + ' ' + escapeHtml(cur)}</td><td class="num">${money2(c.usd)}</td></tr>`);
+    collectRows.push(`<tr><td>Cash — ${escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? fmt(c.foreign) : money2(c.foreign) + ' ' + escapeHtml(cur)}</td><td class="num">${cur === 'USD' ? '—' : rate.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4}) + ' ' + escapeHtml(cur)}</td><td class="num">${money2(c.usd)}</td></tr>`);
   });
   if(paySummary.cardTxns.length){
     collectRows.push(`<tr><td colspan="3">CC Sales (USD) — ${paySummary.cardTxns.map((a,k) => (a < 0 ? ' − $' + money2(-a) : (k ? ' + ' : '') + '$' + money2(a))).join('').trim()}</td><td class="num">$${money2(paySummary.cardUSD)}</td></tr>`);
